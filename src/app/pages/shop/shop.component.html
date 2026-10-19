@@ -1,0 +1,107 @@
+<div class="shop-container">
+  <!-- Cabeçalho da Loja e Saldo -->
+  <header class="shop-header card">
+    <div class="shop-title">
+      <h2>🛍️ Loja de Recompensas Domésticas</h2>
+      <p>Troca as moedas ganhas a cumprir missões por recompensas reais!</p>
+    </div>
+
+    <div class="wallet-badge" *ngIf="userProfile() as user">
+      <span class="coin-icon">🪙</span>
+      <div class="wallet-info">
+        <span class="wallet-label">Teu Saldo:</span>
+        <span class="wallet-amount">{{ user.coins }} Moedas</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mensagens de Feedback -->
+  <div *ngIf="purchaseSuccessMessage" class="alert alert-success">
+    {{ purchaseSuccessMessage }}
+  </div>
+  <div *ngIf="purchaseErrorMessage" class="alert alert-danger">
+    {{ purchaseErrorMessage }}
+  </div>
+
+  <!-- Catálogo de Recompensas -->
+  <section class="rewards-grid">
+    <div *ngFor="let reward of rewards" class="card reward-card">
+      <div class="reward-icon">{{ reward.icon }}</div>
+      
+      <div class="reward-content">
+        <span class="reward-category">{{ reward.category | titlecase }}</span>
+        <h3>{{ reward.title }}</h3>
+        <p>{{ reward.description }}</p>
+      </div>
+
+      <div class="reward-footer">
+        <span class="reward-cost">🪙 {{ reward.cost }}</span>
+        <button 
+          (click)="buyReward(reward)" 
+          class="btn btn-buy" 
+          [disabled]="userProfile().coins < reward.cost"
+        >
+          Resgatar
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Formuário para Adicionar Recompensa Customizada -->
+  <section class="card create-reward-card">
+    <h3>✨ Criar Nova Recompensa na Loja</h3>
+    <form (ngSubmit)="addCustomReward()" class="reward-form">
+      <div class="form-row">
+        <div class="form-group flex-2">
+          <label for="title">Título da Recompensa:</label>
+          <input 
+            type="text" 
+            id="title" 
+            [(ngModel)]="newRewardTitle" 
+            name="title" 
+            placeholder="Ex: Massagem nas costas de 15 min" 
+            required 
+          />
+        </div>
+
+        <div class="form-group flex-1">
+          <label for="cost">Custo (Moedas):</label>
+          <input 
+            type="number" 
+            id="cost" 
+            [(ngModel)]="newRewardCost" 
+            name="cost" 
+            min="1" 
+            required 
+          />
+        </div>
+
+        <div class="form-group flex-1">
+          <label for="icon">Ícone (Emoji):</label>
+          <input 
+            type="text" 
+            id="icon" 
+            [(ngModel)]="newRewardIcon" 
+            name="icon" 
+            placeholder="💆‍♂️" 
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Descrição:</label>
+        <input 
+          type="text" 
+          id="description" 
+          [(ngModel)]="newRewardDescription" 
+          name="description" 
+          placeholder="Condições ou detalhes do resgate..." 
+        />
+      </div>
+
+      <button type="submit" class="btn btn-primary" [disabled]="!newRewardTitle.trim()">
+        ＋ Adicionar à Loja
+      </button>
+    </form>
+  </section>
+</div>
