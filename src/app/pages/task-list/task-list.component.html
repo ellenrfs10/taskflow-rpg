@@ -5,20 +5,24 @@
     {{ errorMessage }}
   </div>
 
-  <!-- Formuário de Criar Nova Missão -->
+  <!-- Formulário Reativo (Reactive Forms) -->
   <section class="card create-mission-card">
     <h3>📜 Adicionar Nova Missão</h3>
-    <form (ngSubmit)="createTask()" class="mission-form">
+    <form [formGroup]="taskForm" (ngSubmit)="createTask()" class="mission-form">
       <div class="form-group">
-        <label for="title">Título da Missão:</label>
+        <label for="title">Título da Missão *:</label>
         <input 
           type="text" 
           id="title" 
-          [(ngModel)]="newTaskTitle" 
-          name="title" 
+          formControlName="title"
           placeholder="Ex: Lavar a louça do jantar" 
-          required 
         />
+        <span 
+          *ngIf="taskForm.get('title')?.invalid && taskForm.get('title')?.touched" 
+          class="field-error"
+        >
+          O título é obrigatório e deve ter pelo menos 3 caracteres.
+        </span>
       </div>
 
       <div class="form-group">
@@ -26,16 +30,15 @@
         <input 
           type="text" 
           id="description" 
-          [(ngModel)]="newTaskDescription" 
-          name="description" 
+          formControlName="description" 
           placeholder="Detalhes opcionais..." 
         />
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label for="category">Categoria:</label>
-          <select id="category" [(ngModel)]="newTaskCategory" name="category">
+          <label for="category">Categoria *:</label>
+          <select id="category" formControlName="category">
             <option *ngFor="let cat of categories" [value]="cat">
               {{ cat | titlecase }}
             </option>
@@ -43,8 +46,8 @@
         </div>
 
         <div class="form-group">
-          <label for="urgency">Urgência:</label>
-          <select id="urgency" [(ngModel)]="newTaskUrgency" name="urgency">
+          <label for="urgency">Urgência *:</label>
+          <select id="urgency" formControlName="urgency">
             <option *ngFor="let level of urgencyLevels" [value]="level">
               {{ level | titlecase }}
             </option>
@@ -54,22 +57,18 @@
 
       <div class="form-checkbox">
         <label>
-          <input 
-            type="checkbox" 
-            [(ngModel)]="newTaskIsCooperative" 
-            name="isCooperative" 
-          />
+          <input type="checkbox" formControlName="isCooperative" />
           🤝 Missão Cooperativa (Co-op com família/parceiro)
         </label>
       </div>
 
-      <button type="submit" class="btn btn-primary" [disabled]="!newTaskTitle.trim()">
+      <button type="submit" class="btn btn-primary" [disabled]="taskForm.invalid">
         ＋ Criar Missão
       </button>
     </form>
   </section>
 
-  <!-- Lista de Missões -->
+  <!-- Lista utilizando o Componente Filho (TaskCardComponent) com @Input e @Output -->
   <section class="card missions-list-card">
     <h3>🎯 Missões Ativas & Concluídas</h3>
 
@@ -82,51 +81,13 @@
     </div>
 
     <ul *ngIf="!isLoading && tasks.length > 0" class="task-list">
-      <li 
-        *ngFor="let task of tasks" 
-        [class.completed]="task.completed" 
-        class="task-item"
+      <app-task-card 
+        *ngFor="let t of tasks" 
+        [task]="t" 
+        (complete)="completeTask($event)" 
+        (delete)="deleteTask($event)"
       >
-        <div class="task-info">
-          <div class="task-header">
-            <span class="category-badge">{{ task.category | titlecase }}</span>
-            <span class="urgency-badge" [ngClass]="task.urgency">
-              {{ task.urgency | titlecase }}
-            </span>
-            <span *ngIf="task.isCooperative" class="coop-badge">🤝 Co-op</span>
-          </div>
-
-          <h4 class="task-title">{{ task.title }}</h4>
-          <p class="task-desc" *ngIf="task.description">{{ task.description }}</p>
-
-          <div class="task-rewards">
-            <span class="reward-xp">⭐ +{{ task.xpReward }} XP</span>
-            <span class="reward-coins">🪙 +{{ task.coinReward }} Moedas</span>
-          </div>
-        </div>
-
-        <div class="task-actions">
-          <button 
-            *ngIf="!task.completed" 
-            (click)="completeTask(task)" 
-            class="btn btn-success"
-          >
-            ✓ Concluir
-          </button>
-
-          <span *ngIf="task.completed" class="completed-label">
-            🎉 Concluída!
-          </span>
-
-          <button 
-            (click)="deleteTask(task.id)" 
-            class="btn btn-danger" 
-            title="Eliminar missão"
-          >
-            🗑️
-          </button>
-        </div>
-      </li>
+      </app-task-card>
     </ul>
   </section>
 </div>

@@ -1,0 +1,41 @@
+<li [class.completed]="task.completed" class="task-item">
+  <div class="task-info">
+    <div class="task-header">
+      <span class="category-badge">{{ task.category | titlecase }}</span>
+      <span class="urgency-badge" [ngClass]="task.urgency">
+        {{ task.urgency | titlecase }}
+      </span>
+      <span *ngIf="task.isCooperative" class="coop-badge">🤝 Co-op</span>
+    </div>
+
+    <h4 class="task-title">{{ task.title }}</h4>
+    <p class="task-desc" *ngIf="task.description">{{ task.description }}</p>
+
+    <div class="task-rewards">
+      <span class="reward-xp">⭐ +{{ task.xpReward }} XP</span>
+      <span class="reward-coins">🪙 +{{ task.coinReward }} Moedas</span>
+    </div>
+  </div>
+
+  <div class="task-actions">
+    <button 
+      *ngIf="!task.completed" 
+      (click)="onComplete()" 
+      class="btn btn-success"
+    >
+      ✓ Concluir
+    </button>
+
+    <span *ngIf="task.completed" class="completed-label">
+      🎉 Concluída!
+    </span>
+
+    <button 
+      (click)="onDelete()" 
+      class="btn btn-danger" 
+      title="Eliminar missão"
+    >
+      🗑️
+    </button>
+  </div>
+</li>

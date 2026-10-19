@@ -195,3 +195,9 @@
   color: #64748b;
   padding: 2rem 0;
 }
+
+.field-error {
+  color: #dc2626;
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+}
