@@ -1,1 +1,54 @@
-<p>dashboard works!</p>
+<div class="dashboard-grid">
+  <!-- Cartão do Perfil do Jogador (Gamificação via Signals) -->
+  <section class="card profile-card" *ngIf="userProfile() as user">
+    <div class="avatar-container">
+      <span class="avatar-icon">{{ user.avatar }}</span>
+      <span class="level-badge">Nível {{ user.level }}</span>
+    </div>
+    
+    <div class="user-info">
+      <h2>{{ user.name }}</h2>
+      <div class="streak">🔥 Sequência: {{ user.streakDays }} dias seguidos!</div>
+      
+      <!-- Barra de XP -->
+      <div class="xp-section">
+        <div class="xp-labels">
+          <span>XP: {{ user.currentXp }} / {{ user.maxXp }}</span>
+          <span>{{ (user.currentXp / user.maxXp) * 100 | number:'1.0-0' }}%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div 
+            class="progress-bar-fill" 
+            [style.width.%]="(user.currentXp / user.maxXp) * 100">
+          </div>
+        </div>
+      </div>
+
+      <!-- Carteira de Moedas -->
+      <div class="coins-badge">
+        🪙 <span>{{ user.coins }} Moedas de Ouro</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Resumo Rápido das Missões -->
+  <section class="card stats-card">
+    <h3>📊 Resumo de Missões</h3>
+    
+    <div class="stats-overview">
+      <div class="stat-item">
+        <span class="stat-number">{{ pendingTasksCount }}</span>
+        <span class="stat-label">Pendentes</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ completedTasksCount }}</span>
+        <span class="stat-label">Concluídas</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <a routerLink="/missions" class="btn btn-primary">Ir para Quadro de Missões ⚔️</a>
+      <a routerLink="/shop" class="btn btn-secondary">Visitar a Loja 🛍️</a>
+    </div>
+  </section>
+</div>

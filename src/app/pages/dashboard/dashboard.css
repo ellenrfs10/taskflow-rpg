@@ -1,0 +1,168 @@
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.avatar-container {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.avatar-icon {
+  font-size: 4.5rem;
+  background: #f1f5f9;
+  padding: 1rem;
+  border-radius: 50%;
+  display: inline-block;
+  line-height: 1;
+}
+
+.level-badge {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #3b82f6;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: bold;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.user-info {
+  width: 100%;
+}
+
+.user-info h2 {
+  margin: 0.5rem 0 0.25rem 0;
+  color: #1e293b;
+}
+
+.streak {
+  color: #ea580c;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.xp-section {
+  margin: 1rem 0;
+}
+
+.xp-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.progress-bar-bg {
+  background: #e2e8f0;
+  border-radius: 10px;
+  height: 12px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  background: linear-gradient(90deg, #10b981, #059669);
+  height: 100%;
+  transition: width 0.4s ease-in-out;
+}
+
+.coins-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fef3c7;
+  color: #b45309;
+  font-weight: bold;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+}
+
+.stats-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.stats-card h3 {
+  color: #1e293b;
+  margin-top: 0;
+}
+
+.stats-overview {
+  display: flex;
+  justify-content: space-around;
+  margin: 1.5rem 0;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  display: block;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #2563eb;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.btn {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  text-align: center;
+  transition: background 0.2s ease;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.btn-secondary {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.btn-secondary:hover {
+  background: #e2e8f0;
+}
