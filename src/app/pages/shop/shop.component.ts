@@ -55,8 +55,16 @@ export class ShopComponent {
       icon: '🎟️',
       category: 'especial'
     },
-      {
+    {
       id: 5,
+      title: 'Massagem nas costas',
+      description: '15 minutos de massagens nas costas',
+      cost: 200,
+      icon: '⌛️',
+      category: 'descanso'
+    },
+      {
+      id: 6,
       title: 'Novo Jogo',
       description: 'Passe livre para compraro jogo que quiser.',
       cost: 500,
@@ -64,7 +72,7 @@ export class ShopComponent {
       category: 'especial'
     },
     {
-      id: 6,
+      id: 7,
       title: 'Noite de Jogos com amigos',
       description: 'Casa liberada para encontrar os amigos em uma noite de jogos.',
       cost: 700,
@@ -72,14 +80,14 @@ export class ShopComponent {
       category: 'especial'
     },
     {
-      id: 7,
+      id: 8,
       title: 'Impressora 3d',
       description: 'Ok, mereces.',
       cost: 5000,
       icon: '🖨',
       category: 'especial'
     },
-
+  
   ];
 
   // Formulário para criar nova recompensa personalizada
