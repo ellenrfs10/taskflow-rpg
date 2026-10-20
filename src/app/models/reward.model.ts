@@ -1,8 +1,11 @@
+
+export type RewardCategory = 'Geral' | 'Lazer' | 'Privilégios' | 'Comida' | 'Especial' | 'Descanso';
+
 export interface Reward {
-    id: number;
+    id: string;
     title: string;
     description: string;
-    cost: number;
-    icon: string;
-    category: 'lazer' | 'descanso' | 'comida' | 'especial';
+    cost: number; 
+    icon?: string;
+    category: RewardCategory;
 }

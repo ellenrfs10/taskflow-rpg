@@ -1,140 +1,98 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ShopService } from '../../services/shop.service';
 import { GamificationService } from '../../services/gamification.service';
-import { Reward } from '../../models/reward.model';
+import { Reward, RewardCategory } from '../../models/reward.model';
 
 @Component({
   selector: 'app-shop',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './shop.component.html',
   styleUrl: './shop.component.css'
 })
 export class ShopComponent {
+  private shopService = inject(ShopService);
   private gamificationService = inject(GamificationService);
+  private fb = inject(FormBuilder);
 
-  // Aceder ao perfil reativo do jogador via Signals
-  readonly userProfile = this.gamificationService.userProfile;
+  // Perfil ativo
+  readonly user = this.gamificationService.userProfile;
 
-  // Mensagens de feedback de compra
-  purchaseSuccessMessage = '';
-  purchaseErrorMessage = '';
+  // Filtros
+  selectedCategory = signal<string>('Todas');
+  sortByPrice = signal<'asc' | 'desc' | 'none'>('none');
 
-  // Lista padrão de recompensas disponíveis na loja
-  rewards: Reward[] = [
-    {
-      id: 1,
-      title: 'Escolher o Filme da Noite',
-      description: 'Direito total à escolha do filme e snacks sem discussão!',
-      cost: 50,
-      icon: '🎬',
-      category: 'lazer'
-    },
-    {
-      id: 2,
-      title: 'Dormir Até Mais Tarde',
-      description: 'Isenção das tarefas da manhã durante um fim de semana.',
-      cost: 100,
-      icon: '🛌',
-      category: 'descanso'
-    },
-    {
-      id: 3,
-      title: 'Jantar no Restaurante Favorito',
-      description: 'Escolher o restaurante do próximo jantar fora.',
-      cost: 150,
-      icon: '🍕',
-      category: 'comida'
-    },
-    {
-      id: 4,
-      title: 'Passe Livre de uma Tarefa',
-      description: 'Passar uma missão à tua escolha para outro membro da equipa.',
-      cost: 200,
-      icon: '🎟️',
-      category: 'especial'
-    },
-    {
-      id: 5,
-      title: 'Massagem nas costas',
-      description: '15 minutos de massagens nas costas',
-      cost: 200,
-      icon: '⌛️',
-      category: 'descanso'
-    },
-      {
-      id: 6,
-      title: 'Novo Jogo',
-      description: 'Passe livre para compraro jogo que quiser.',
-      cost: 500,
-        icon: '🕹',
-      category: 'especial'
-    },
-    {
-      id: 7,
-      title: 'Noite de Jogos com amigos',
-      description: 'Casa liberada para encontrar os amigos em uma noite de jogos.',
-      cost: 700,
-      icon: '🏓',
-      category: 'especial'
-    },
-    {
-      id: 8,
-      title: 'Impressora 3d',
-      description: 'Ok, mereces.',
-      cost: 5000,
-      icon: '🖨',
-      category: 'especial'
-    },
-  
-  ];
+  categories: string[] = ['Todas', 'Geral', 'Lazer', 'Privilégios', 'Guloseimas'];
 
-  // Formulário para criar nova recompensa personalizada
-  newRewardTitle = '';
-  newRewardDescription = '';
-  newRewardCost = 50;
-  newRewardIcon = '🎁';
+  // Formulário Reativo para criar novo prémio
+  rewardForm: FormGroup = this.fb.group({
+    title: ['', [Validators.required, Validators.minLength(3)]],
+    description: [''],
+    cost: [50, [Validators.required, Validators.min(1)]],
+    icon: ['🎁', Validators.required],
+    category: ['Geral' as RewardCategory, Validators.required]
+  });
 
-  // Comprar Recompensa
+  // Lista reativa filtrada e ordenada
+  filteredRewards = computed(() => {
+    let list = [...this.shopService.rewards()];
+
+    // 1. Filtrar por Categoria
+    const category = this.selectedCategory();
+    if (category !== 'Todas') {
+      list = list.filter(r => r.category === category);
+    }
+
+    // 2. Ordenar por Preço
+    const order = this.sortByPrice();
+    if (order === 'asc') {
+      list.sort((a, b) => a.cost - b.cost); // Do mais barato ao mais caro
+    } else if (order === 'desc') {
+      list.sort((a, b) => b.cost - a.cost); // Do mais caro ao mais barato
+    }
+
+    return list;
+  });
+
+  // Métodos de Controlo dos Filtros
+  filterByCategory(cat: string) {
+    this.selectedCategory.set(cat);
+  }
+
+  setSortOrder(order: 'asc' | 'desc' | 'none') {
+    this.sortByPrice.set(order);
+  }
+
+  // Ações de Comprar, Adicionar e Eliminar
   buyReward(reward: Reward) {
-    this.clearMessages();
-
-    const success = this.gamificationService.spendCoins(reward.cost);
-
-    if (success) {
-      this.purchaseSuccessMessage = `🎉 Parabéns! Resgataste "${reward.title}" por ${reward.cost} moedas!`;
+    if (this.user().coins >= reward.cost) {
+      const success = this.gamificationService.spendCoins(reward.cost);
+      if (success) {
+        alert(`🎉 Parabéns! Resgataste "${reward.title}"!`);
+      }
     } else {
-      this.purchaseErrorMessage = `❌ Moedas insuficientes! Precisas de mais ${reward.cost - this.userProfile().coins} moedas.`;
+      alert('❌ Moedas insuficientes para resgatar este prémio!');
     }
   }
 
-  // Adicionar Recompensa Personalizada
-  addCustomReward() {
-    if (!this.newRewardTitle.trim() || this.newRewardCost <= 0) return;
+  addReward() {
+    if (this.rewardForm.invalid) return;
 
-    const newReward: Reward = {
-      id: Date.now(),
-      title: this.newRewardTitle,
-      description: this.newRewardDescription || 'Recompensa personalizada criada pela equipa.',
-      cost: this.newRewardCost,
-      icon: this.newRewardIcon || '🎁',
-      category: 'especial'
-    };
-
-    this.rewards.push(newReward);
-    this.resetForm();
+    this.shopService.addReward(this.rewardForm.value);
+    this.rewardForm.reset({
+      title: '',
+      description: '',
+      cost: 50,
+      icon: '🎁',
+      category: 'Geral'
+    });
   }
 
-  private resetForm() {
-    this.newRewardTitle = '';
-    this.newRewardDescription = '';
-    this.newRewardCost = 50;
-    this.newRewardIcon = '🎁';
-  }
-
-  private clearMessages() {
-    this.purchaseSuccessMessage = '';
-    this.purchaseErrorMessage = '';
+  removeReward(id: string) {
+    if (confirm('Tem a certeza que deseja eliminar este prémio da loja?')) {
+      this.shopService.deleteReward(id);
+    }
   }
 }
