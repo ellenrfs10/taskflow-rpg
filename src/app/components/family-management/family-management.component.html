@@ -1,0 +1,53 @@
+<section class="card family-card">
+  <h3>👥 Membros da Família</h3>
+
+  <!-- Lista de Perfis e Seleção -->
+  <div class="members-grid">
+    <div 
+      *ngFor="let member of familyMembers()" 
+      class="member-badge" 
+      [class.active]="member.id === activeUser().id"
+      (click)="switchMember(member.id)"
+    >
+      <span class="avatar">{{ member.avatar }}</span>
+      <div class="info">
+        <strong>{{ member.name }}</strong>
+        <small>{{ member.role }} • Nível {{ member.level }}</small>
+      </div>
+      <span class="coins">🪙 {{ member.coins }}</span>
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- Formulário Reativo para Registar Novo Membro -->
+  <h4>➕ Adicionar Novo Membro</h4>
+  <form [formGroup]="memberForm" (ngSubmit)="onSubmit()" class="add-member-form">
+    <div class="form-row">
+      <div class="form-group flex-2">
+        <label for="memberName">Nome *</label>
+        <input id="memberName" type="text" formControlName="name" placeholder="Ex: Lucas" />
+      </div>
+
+      <div class="form-group flex-1">
+        <label for="memberRole">Papel *</label>
+        <select id="memberRole" formControlName="role">
+          <option value="Pai/Mãe">Pai/Mãe</option>
+          <option value="Filho(a)">Filho(a)</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+
+      <div class="form-group flex-1">
+        <label for="avatarSelect">Avatar *</label>
+        <select id="avatarSelect" formControlName="avatar">
+          <option *ngFor="let a of avatars" [value]="a">{{ a }}</option>
+        </select>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary" [disabled]="memberForm.invalid">
+      Registar Membro
+    </button>
+  </form>
+</section>

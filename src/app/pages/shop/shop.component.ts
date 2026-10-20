@@ -41,7 +41,7 @@ export class ShopComponent {
     },
     {
       id: 3,
-      title: 'Jantar no Restante Favorito',
+      title: 'Jantar no Restaurante Favorito',
       description: 'Escolher o restaurante do próximo jantar fora.',
       cost: 150,
       icon: '🍕',
@@ -54,7 +54,32 @@ export class ShopComponent {
       cost: 200,
       icon: '🎟️',
       category: 'especial'
-    }
+    },
+      {
+      id: 5,
+      title: 'Novo Jogo',
+      description: 'Passe livre para compraro jogo que quiser.',
+      cost: 500,
+        icon: '🕹',
+      category: 'especial'
+    },
+    {
+      id: 6,
+      title: 'Noite de Jogos com amigos',
+      description: 'Casa liberada para encontrar os amigos em uma noite de jogos.',
+      cost: 700,
+      icon: '🏓',
+      category: 'especial'
+    },
+    {
+      id: 7,
+      title: 'Impressora 3d',
+      description: 'Ok, mereces.',
+      cost: 5000,
+      icon: '🖨',
+      category: 'especial'
+    },
+
   ];
 
   // Formulário para criar nova recompensa personalizada
