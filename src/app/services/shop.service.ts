@@ -41,6 +41,14 @@ export class ShopService {
             cost: 150,
             icon: '🍿',
             category: 'Lazer'
+        },
+        {
+            id: '5',
+            title: 'Massagem nas costas de 15 minutos',
+            description: 'Bilhete para ver um filme à escolha',
+            cost: 150,
+            icon: '🍿',
+            category: 'Lazer'
         }
     ];
 
