@@ -2,7 +2,6 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { GamificationService } from '../../services/gamification.service';
-import { FamilyMember } from '../../models/user.model';
 
 @Component({
     selector: 'app-family-management',
@@ -15,21 +14,22 @@ export class FamilyManagementComponent {
     private gamificationService = inject(GamificationService);
     private fb = inject(FormBuilder);
 
-    readonly familyMembers = this.gamificationService.familyMembers;
+    // Variável que o HTML espera para o *ngFor
+    readonly familyMembers = this.gamificationService.profiles;
     readonly activeUser = this.gamificationService.userProfile;
 
-    // Adicionado o campo 'email' com validação
+    // Formulário correspondente aos campos do HTML
     memberForm: FormGroup = this.fb.group({
         name: ['', [Validators.required, Validators.minLength(2)]],
-        email: ['', [Validators.required, Validators.email]],
-        avatar: ['🛡️', Validators.required],
-        role: ['Filho(a)' as FamilyMember['role'], Validators.required]
+        email: ['usuario@taskflow.com', [Validators.required, Validators.email]], // Incluído para satisfazer a BD
+        avatar: ['🧙‍♂️', Validators.required],
+        role: ['Filho(a)', Validators.required]
     });
 
     avatars = ['🧙‍♀️', '🧙‍♂️', '🛡️', '⚔️', '🏹', '🐉', '🦁', '👑', '🦸‍♂️'];
 
-    switchMember(id: string) {
-        this.gamificationService.switchActiveUser(id);
+    switchMember(id: number) {
+        this.gamificationService.switchActiveProfile(id);
     }
 
     onSubmit() {
@@ -37,13 +37,13 @@ export class FamilyManagementComponent {
 
         const { name, email, avatar, role } = this.memberForm.value;
 
-        // Passamos agora os 4 argumentos exigidos pelo serviço
-        this.gamificationService.addFamilyMember(name, avatar, role, email);
+        // Envia os dados para o serviço gravar na tabela 'profile' do Supabase
+        this.gamificationService.addProfile(name, email, avatar, role);
 
         this.memberForm.reset({
             name: '',
-            email: '',
-            avatar: '🛡️',
+            email: 'usuario@taskflow.com',
+            avatar: '🧙‍♂️',
             role: 'Filho(a)'
         });
     }

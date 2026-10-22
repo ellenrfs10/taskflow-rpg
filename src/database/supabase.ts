@@ -39,24 +39,195 @@ export type Database = {
   }
   public: {
     Tables: {
-      user: {
+      avatar: {
+        Row: {
+          boy: string
+          created_at: string
+          girl: string
+          id: number
+          man: string
+          old_boy: string
+          old_woman: string
+          woman: string
+        }
+        Insert: {
+          boy: string
+          created_at?: string
+          girl: string
+          id?: number
+          man: string
+          old_boy: string
+          old_woman: string
+          woman: string
+        }
+        Update: {
+          boy?: string
+          created_at?: string
+          girl?: string
+          id?: number
+          man?: string
+          old_boy?: string
+          old_woman?: string
+          woman?: string
+        }
+        Relationships: []
+      }
+      profile: {
+        Row: {
+          active: boolean | null
+          "avatar?": string | null
+          coins: number | null
+          created_at: string
+          current_xp: number | null
+          email: string
+          id: number
+          id_avatar: number | null
+          id_role: number | null
+          level: number | null
+          max_xp: number | null
+          name: string
+          streak_days: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          "avatar?"?: string | null
+          coins?: number | null
+          created_at?: string
+          current_xp?: number | null
+          email: string
+          id?: number
+          id_avatar?: number | null
+          id_role?: number | null
+          level?: number | null
+          max_xp?: number | null
+          name: string
+          streak_days?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          "avatar?"?: string | null
+          coins?: number | null
+          created_at?: string
+          current_xp?: number | null
+          email?: string
+          id?: number
+          id_avatar?: number | null
+          id_role?: number | null
+          level?: number | null
+          max_xp?: number | null
+          name?: string
+          streak_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_avatar_fkey"
+            columns: ["id_avatar"]
+            isOneToOne: false
+            referencedRelation: "avatar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_id_role_fkey"
+            columns: ["id_role"]
+            isOneToOne: false
+            referencedRelation: "role"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rewards: {
+        Row: {
+          category: string
+          cost: number
+          created_at: string
+          description: string
+          icon: string
+          id: number
+          title: string
+        }
+        Insert: {
+          category: string
+          cost: number
+          created_at: string
+          description: string
+          icon: string
+          id?: number
+          title: string
+        }
+        Update: {
+          category?: string
+          cost?: number
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      role: {
         Row: {
           created_at: string
-          email: string | null
+          description: string | null
           id: number
-          nome: string | null
+          name: string
         }
         Insert: {
           created_at?: string
-          email?: string | null
+          description?: string | null
           id?: number
-          nome?: string | null
+          name: string
         }
         Update: {
           created_at?: string
-          email?: string | null
+          description?: string | null
           id?: number
-          nome?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          category: string
+          coin_reward: number | null
+          completed: boolean | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: number
+          is_cooperative: boolean | null
+          participants: string[] | null
+          title: string
+          urgency: string | null
+          xp_reward: number | null
+        }
+        Insert: {
+          category: string
+          coin_reward?: number | null
+          completed?: boolean | null
+          created_at: string
+          description?: string | null
+          due_date?: string | null
+          id?: number
+          is_cooperative?: boolean | null
+          participants?: string[] | null
+          title: string
+          urgency?: string | null
+          xp_reward?: number | null
+        }
+        Update: {
+          category?: string
+          coin_reward?: number | null
+          completed?: boolean | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: number
+          is_cooperative?: boolean | null
+          participants?: string[] | null
+          title?: string
+          urgency?: string | null
+          xp_reward?: number | null
         }
         Relationships: []
       }
