@@ -1,5 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { Exemplo } from './services/exemplo';
+
 
 @Component({
   selector: 'app-root',
@@ -8,6 +10,14 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App {
+export class App implements OnInit{
+  private exemplo = inject(Exemplo)
   title = 'taskflow-rpg';
+  async ngOnInit() {
+     const user = await this.exemplo.getUser()
+    console.log(user) 
+    
+    
+  }
+
 }
