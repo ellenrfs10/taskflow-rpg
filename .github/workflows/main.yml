@@ -37,14 +37,18 @@ jobs:
           mkdir -p src/environments
           cat > src/environments/environment.ts <<EOF
           export const environment = {
-            supabaseUrl: '${supabaseURL}',
-            supabaseKey: '${supabaseKey}',
+            supabaseUrl: '${SUPABASE_URL}',
+            supabaseKey: '${SUPABASE_KEY}',
           };
           EOF
 
       - name: Build Angular Project
         run: |
-          npm run build -- --configuration production --base-href "/taskflow-rpg/"
+          npx ng build -- --configuration production --base-href "/taskflow-rpg/"
+      - name: Verificar saída do build
+        run: |
+          ls -R dist
+          grep "<base" dist/taskflow-rpg/browser/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
