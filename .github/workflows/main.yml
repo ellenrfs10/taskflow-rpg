@@ -44,7 +44,7 @@ jobs:
 
       - name: Build Angular Project
         run: |
-          npx ng build -- --configuration production --base-href "/taskflow-rpg/"
+          npx ng build --configuration production --base-href "/taskflow-rpg/"
       - name: Verificar saída do build
         run: |
           ls -R dist
