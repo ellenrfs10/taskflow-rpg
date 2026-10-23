@@ -48,7 +48,7 @@ jobs:
       - name: Verificar saída do build
         run: |
           ls -R dist
-          grep "<base" dist/taskflow-rpg/browser/index.html
+          grep "<base" dist/taskflow-rpg/browser/*.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
