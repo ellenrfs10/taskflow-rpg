@@ -1,0 +1,32 @@
+<div class="auth-container">
+    <div class="card auth-card">
+        <h2>{{ isLoginMode() ? '🔑 Entrar no TaskFlow' : '✨ Criar Nova Conta' }}</h2>
+
+        <form [formGroup]="authForm" (ngSubmit)="onSubmit()">
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input id="email" type="email" formControlName="email" placeholder="teu@email.com" />
+            </div>
+
+            <div class="form-group">
+                <label for="password">Palavra-passe</label>
+                <input id="password" type="password" formControlName="password" placeholder="Mínimo de 6 caracteres" />
+            </div>
+
+            <div *ngIf="errorMessage()" class="error-message">
+                ⚠️ {{ errorMessage() }}
+            </div>
+
+            <button type="submit" class="btn btn-primary" [disabled]="authForm.invalid || loading()">
+                {{ loading() ? 'A processar...' : (isLoginMode() ? 'Entrar' : 'Registar') }}
+            </button>
+        </form>
+
+        <p class="switch-text">
+            {{ isLoginMode() ? 'Ainda não tens conta?' : 'Já tens conta?' }}
+            <a type="button" (click)="toggleMode()">
+                {{ isLoginMode() ? 'Regista-te aqui' : 'Faz login' }}
+            </a>
+        </p>
+    </div>
+</div>
