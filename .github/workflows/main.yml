@@ -45,6 +45,10 @@ jobs:
       - name: Build Angular Project
         run: |
           npx ng build --configuration production --base-href "/taskflow-rpg/"
+      - name: Preparar index e fallback SPA
+        run: |
+          cp dist/taskflow-rpg/browser/index.csr.html dist/taskflow-rpg/browser/index.html
+          cp dist/taskflow-rpg/browser/index.csr.html dist/taskflow-rpg/browser/404.html
       - name: Verificar saída do build
         run: |
           ls -R dist
