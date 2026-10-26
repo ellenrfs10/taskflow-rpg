@@ -25,13 +25,14 @@ export class AuthService {
         });
     }
 
-    // Registar novo utilizador (com metadados de nome e avatar)
-    signUp(email: string, password: string, name?: string, avatarId?: number): Observable<any> {
+    // Registar novo utilizador (com metadados de nome, avatar e role)
+    signUp(email: string, password: string, name?: string, avatarId?: number, roleId?: number): Observable<any> {
         const options: any = {};
-        if (name || avatarId) {
+        if (name || avatarId || roleId) {
             options.data = {};
             if (name) options.data.name = name;
             if (avatarId) options.data.avatar_id = avatarId;
+            if (roleId) options.data.role_id = roleId;
         }
 
         const promise = this.client.auth.signUp({

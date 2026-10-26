@@ -7,7 +7,10 @@
     <nav class="nav-links">
         <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
         <a routerLink="/missions" routerLinkActive="active">Missões</a>
-        <a routerLink="/rewards" routerLinkActive="active">Loja & Recompensas</a>
+        <a routerLink="/shop" routerLinkActive="active">Loja & Recompensas</a>
+        @if (currentUser()) {
+            <a routerLink="/profile/edit" routerLinkActive="active">⚙️ Perfil</a>
+        }
     </nav>
 
     <!-- Ações do Utilizador (Botão de Sair) -->

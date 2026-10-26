@@ -1,0 +1,50 @@
+<div class="profile-container">
+    <div class="card profile-card">
+        <h2>🛡️ Editar Perfil do Herói</h2>
+
+        <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+            <div class="form-group">
+                <label for="name">Nome do Herói</label>
+                <input id="name" type="text" formControlName="name" />
+            </div>
+
+            <div class="form-group">
+                <label>Escolhe a tua Classe</label>
+                <div class="role-grid">
+                    <div 
+                        *ngFor="let role of roles()" 
+                        class="role-option"
+                        [class.selected]="selectedRoleId() === role.id"
+                        (click)="selectRole(role.id)">
+                        <span>⚔️ {{ role.name }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Escolhe o teu Avatar</label>
+                <div class="avatar-grid">
+                    <div 
+                        *ngFor="let avatar of avatars()" 
+                        class="avatar-option"
+                        [class.selected]="selectedAvatarId() === avatar.id"
+                        (click)="selectAvatar(avatar.id)">
+                        <img [src]="avatar.image_url" [alt]="avatar.name" />
+                    </div>
+                </div>
+            </div>
+
+            <div *ngIf="successMessage()" class="success-message">
+                ✨ {{ successMessage() }}
+            </div>
+
+            <div *ngIf="errorMessage()" class="error-message">
+                ⚠️ {{ errorMessage() }}
+            </div>
+
+            <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid || loading()">
+                {{ loading() ? 'A gravar...' : 'Guardar Alterações' }}
+            </button>
+        </form>
+    </div>
+</div>

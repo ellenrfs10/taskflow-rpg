@@ -2,10 +2,9 @@ import { Routes } from '@angular/router';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { TaskListComponent } from './pages/task-list/task-list.component';
 import { ShopComponent } from './pages/shop/shop.component';
-import { AuthComponent } from './components/authentication/auth.component'; // Ajusta o caminho se o componente estiver noutra pasta
+import { AuthComponent } from './components/authentication/auth.component';
 import { RegisterComponent } from './components/register/register.component';
-
-
+import { ProfileEditComponent } from './components/profile-edit/profile-edit.component'; // <-- Importar o componente de perfil
 
 export const routes: Routes = [
     // Rota de Autenticação (Login / Registo)
@@ -23,6 +22,9 @@ export const routes: Routes = [
 
     // Vista 3: Loja / Equipa (ou histórico)
     { path: 'shop', component: ShopComponent },
+
+    // Vista 4: Edição de Perfil
+    { path: 'profile/edit', component: ProfileEditComponent }, // <-- Adicionar esta linha
 
     // Rota coringa para redirecionar URLs inválidos para o auth
     { path: '**', redirectTo: 'auth' }

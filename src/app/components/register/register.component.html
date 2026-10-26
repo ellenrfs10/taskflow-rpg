@@ -47,3 +47,29 @@
         </p>
     </div>
 </div>
+<div class="form-group">
+                <label>Escolhe a tua Classe</label>
+                <div class="role-grid">
+                    <div 
+                        *ngFor="let role of roles()" 
+                        class="role-option"
+                        [class.selected]="selectedRoleId() === role.id"
+                        (click)="selectRole(role.id)">
+                        <span>🛡️ {{ role.name }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seletor de Avatar -->
+            <div class="form-group">
+                <label>Escolhe o teu Avatar</label>
+                <div class="avatar-grid">
+                    <div 
+                        *ngFor="let avatar of avatars()" 
+                        class="avatar-option"
+                        [class.selected]="selectedAvatarId() === avatar.id"
+                        (click)="selectAvatar(avatar.id)">
+                        <img [src]="avatar.image_url" [alt]="avatar.name" />
+                    </div>
+                </div>
+            </div>

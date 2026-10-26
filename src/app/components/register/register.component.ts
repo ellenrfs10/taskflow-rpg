@@ -20,7 +20,9 @@ export class RegisterComponent implements OnInit {
     private router = inject(Router);
 
     avatars = signal<any[]>([]);
+    roles = signal<any[]>([]);
     selectedAvatarId = signal<number | null>(null);
+    selectedRoleId = signal<number | null>(null);
     errorMessage = signal<string | null>(null);
     loading = signal<boolean>(false);
 
@@ -31,41 +33,42 @@ export class RegisterComponent implements OnInit {
     });
 
     ngOnInit() {
-        this.loadAvatars();
+        this.loadCatalogs();
     }
-
-    loadAvatars() {
-        const promise = this.supabaseService.supabaseClient
-            .from('avatar')
-            .select('*');
-
-        from(promise).subscribe({
+    loadCatalogs() {
+        // Carregar Avatares
+        from(this.supabaseService.supabaseClient.from('avatar').select('*')).subscribe({
             next: (res: any) => {
-                if (res.data) {
+                if (res.data && res.data.length > 0) {
                     this.avatars.set(res.data);
-                    if (res.data.length > 0) {
-                        this.selectedAvatarId.set(res.data[0].id); // Seleciona o primeiro por defeito
-                    }
+                    this.selectedAvatarId.set(res.data[0].id);
                 }
-            },
-            error: (err) => console.error('Erro ao carregar avatares:', err)
+            }
+        });
+
+        // Carregar Roles (Classes)
+        from(this.supabaseService.supabaseClient.from('role').select('*')).subscribe({
+            next: (res: any) => {
+                if (res.data && res.data.length > 0) {
+                    this.roles.set(res.data);
+                    this.selectedRoleId.set(res.data[0].id);
+                }
+            }
         });
     }
 
-    selectAvatar(id: number) {
-        this.selectedAvatarId.set(id);
-    }
+    selectAvatar(id: number) { this.selectedAvatarId.set(id); }
+    selectRole(id: number) { this.selectedRoleId.set(id); }
 
     onSubmit() {
-        if (this.registerForm.invalid || !this.selectedAvatarId()) return;
+        if (this.registerForm.invalid || !this.selectedAvatarId() || !this.selectedRoleId()) return;
 
         const { name, email, password } = this.registerForm.value;
-        const avatarId = this.selectedAvatarId()!;
 
         this.loading.set(true);
         this.errorMessage.set(null);
 
-        this.authService.signUp(email, password, name, avatarId).subscribe({
+        this.authService.signUp(email, password, name, this.selectedAvatarId()!, this.selectedRoleId()!).subscribe({
             next: () => {
                 this.loading.set(false);
                 alert('Herói registado com sucesso! Podes fazer login.');
