@@ -1,0 +1,27 @@
+<header class="user-header">
+    <div class="logo">
+        <h2>🏰 TaskFlow RPG - Gestor Doméstico</h2>
+    </div>
+
+    <!-- Links de Navegação -->
+    <nav class="nav-links">
+        <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+        <a routerLink="/missions" routerLinkActive="active">Missões</a>
+        <a routerLink="/rewards" routerLinkActive="active">Loja & Recompensas</a>
+    </nav>
+
+    <!-- Ações do Utilizador (Botão de Sair) -->
+    <div class="header-actions">
+        @if (currentUser()) {
+            <button (click)="logout()" class="btn btn-logout">
+                🚪 Sair
+            </button>
+        } @else {
+            <a routerLink="/auth" class="btn btn-login">Entrar</a>
+        }
+    </div>
+</header>
+
+<main class="app-container">
+  <router-outlet></router-outlet>
+</main>
