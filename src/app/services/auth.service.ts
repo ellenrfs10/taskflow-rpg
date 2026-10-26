@@ -6,7 +6,7 @@ import { map } from 'rxjs/operators';
 @Injectable({
     providedIn: 'root'
 })
-class AuthService {
+export class AuthService {
     private supabaseService = inject(SupabaseService);
     private client = this.supabaseService.supabaseClient;
 
@@ -25,9 +25,21 @@ class AuthService {
         });
     }
 
-    // Registar novo utilizador
-    signUp(email: string, password: string): Observable<any> {
-        const promise = this.client.auth.signUp({ email, password });
+    // Registar novo utilizador (com metadados de nome e avatar)
+    signUp(email: string, password: string, name?: string, avatarId?: number): Observable<any> {
+        const options: any = {};
+        if (name || avatarId) {
+            options.data = {};
+            if (name) options.data.name = name;
+            if (avatarId) options.data.avatar_id = avatarId;
+        }
+
+        const promise = this.client.auth.signUp({
+            email,
+            password,
+            options: Object.keys(options).length > 0 ? options : undefined
+        });
+
         return from(promise).pipe(
             map(({ data, error }) => {
                 if (error) throw error;
@@ -54,4 +66,3 @@ class AuthService {
     }
 }
 
-export { AuthService };

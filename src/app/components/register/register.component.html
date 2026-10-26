@@ -1,0 +1,49 @@
+<div class="auth-container">
+    <div class="card auth-card">
+        <h2>⚔️ Criar o teu Herói</h2>
+
+        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+            <div class="form-group">
+                <label for="name">Nome do Herói</label>
+                <input id="name" type="text" formControlName="name" placeholder="Ex: Arthur Pendragon" />
+            </div>
+
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input id="email" type="email" formControlName="email" placeholder="teu@email.com" />
+            </div>
+
+            <div class="form-group">
+                <label for="password">Palavra-passe</label>
+                <input id="password" type="password" formControlName="password" placeholder="Mínimo de 6 caracteres" />
+            </div>
+
+            <div class="form-group">
+                <label>Escolhe o teu Avatar</label>
+                <div class="avatar-grid">
+                    <div 
+                        *ngFor="let avatar of avatars()" 
+                        class="avatar-option"
+                        [class.selected]="selectedAvatarId() === avatar.id"
+                        (click)="selectAvatar(avatar.id)">
+                        <img [src]="avatar.image_url" [alt]="avatar.name" />
+                        <span>{{ avatar.name }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div *ngIf="errorMessage()" class="error-message">
+                ⚠️ {{ errorMessage() }}
+            </div>
+
+            <button type="submit" class="btn btn-primary" [disabled]="registerForm.invalid || loading()">
+                {{ loading() ? 'A convocar herói...' : 'Criar Conta' }}
+            </button>
+        </form>
+
+        <p class="switch-text">
+            Já tens conta? 
+            <a routerLink="/auth">Faz login aqui</a>
+        </p>
+    </div>
+</div>

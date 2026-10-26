@@ -3,10 +3,14 @@ import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { TaskListComponent } from './pages/task-list/task-list.component';
 import { ShopComponent } from './pages/shop/shop.component';
 import { AuthComponent } from './components/authentication/auth.component'; // Ajusta o caminho se o componente estiver noutra pasta
+import { RegisterComponent } from './components/register/register.component';
+
+
 
 export const routes: Routes = [
     // Rota de Autenticação (Login / Registo)
     { path: 'auth', component: AuthComponent },
+    { path: 'register', component: RegisterComponent },
 
     // Redireciona a raiz para o ecrã de login por defeito
     { path: '', redirectTo: 'auth', pathMatch: 'full' },
