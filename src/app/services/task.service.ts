@@ -2,7 +2,7 @@ import { Injectable, signal, inject } from '@angular/core';
 import { SupabaseService } from './supabase-service';
 import { Task } from '../models/task.model';
 import { Observable, from } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { map, tap, switchMap } from 'rxjs/operators';
 
 @Injectable({
     providedIn: 'root'
@@ -68,7 +68,6 @@ export class TaskService {
         this.loadTasks();
     }
 
-    // Mapeia os dados da BD (snake_case) para o modelo oficial do projeto (camelCase)
     private mapDbTaskToModel(item: any): Task {
         return {
             id: item.id,
@@ -113,17 +112,32 @@ export class TaskService {
     }
 
     private seedInitialTasks() {
-        const promise = (this.client as any)
-            .from('tasks')
-            .insert(this.initialTasks)
-            .select();
+        from(this.client.auth.getUser()).pipe(
+            switchMap(({ data: { user } }) => {
+                if (!user) throw new Error('Utilizador não autenticado');
 
-        from(promise).subscribe({
-            next: () => {
+                const tasksWithUser = this.initialTasks.map(t => ({
+                    ...t,
+                    profile_id: user.id
+                }));
+
+                const promise = (this.client as any)
+                    .from('tasks')
+                    .insert(tasksWithUser)
+                    .select();
+
+                return from(promise);
+            })
+        ).subscribe({
+            next: (res: any) => {
+                if (res.error) {
+                    console.error('Erro ao popular tarefas iniciais:', res.error);
+                    return;
+                }
                 const p2 = (this.client as any).from('tasks').select('*');
-                from(p2).subscribe((res: any) => {
-                    if (res.data) {
-                        const mapped = res.data.map((item: any) => this.mapDbTaskToModel(item));
+                from(p2).subscribe((res2: any) => {
+                    if (res2.data) {
+                        const mapped = res2.data.map((item: any) => this.mapDbTaskToModel(item));
                         this.tasks.set(mapped);
                     }
                 });
@@ -133,26 +147,34 @@ export class TaskService {
     }
 
     addTask(taskData: any): Observable<Task> {
-        const payload = {
-            title: taskData.title,
-            description: taskData.description || '',
-            category: taskData.category || 'Geral',
-            urgency: taskData.urgency || 'Normal',
-            completed: false,
-            xp_reward: Number(taskData.xpReward ?? taskData.xp_reward) || 20,
-            coin_reward: Number(taskData.coinReward ?? taskData.coin_reward) || 10,
-            due_date: taskData.dueDate ?? taskData.due_date ?? null,
-            is_cooperative: taskData.isCooperative ?? taskData.is_cooperative ?? false,
-            created_at: new Date().toISOString()
-        };
+        return from(this.client.auth.getUser()).pipe(
+            switchMap(({ data: { user } }) => {
+                if (!user) {
+                    throw new Error('Utilizador não autenticado');
+                }
 
-        const promise = (this.client as any)
-            .from('tasks')
-            .insert([payload])
-            .select()
-            .single();
+                const payload = {
+                    title: taskData.title,
+                    description: taskData.description || '',
+                    category: taskData.category || 'Geral',
+                    urgency: taskData.urgency || 'Normal',
+                    completed: false,
+                    xp_reward: Number(taskData.xpReward ?? taskData.xp_reward) || 20,
+                    coin_reward: Number(taskData.coinReward ?? taskData.coin_reward) || 10,
+                    due_date: taskData.dueDate ?? taskData.due_date ?? null,
+                    is_cooperative: taskData.isCooperative ?? taskData.is_cooperative ?? false,
+                    created_at: new Date().toISOString(),
+                    profile_id: user.id
+                };
 
-        return from(promise).pipe(
+                const promise = (this.client as any)
+                    .from('tasks')
+                    .insert([payload])
+                    .select()
+                    .single();
+
+                return from(promise);
+            }),
             map((response: any) => {
                 if (response.error) throw response.error;
                 const newTask = this.mapDbTaskToModel(response.data);

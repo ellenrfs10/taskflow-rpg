@@ -3,11 +3,11 @@ import { SupabaseService } from './supabase-service';
 import { from } from 'rxjs';
 
 export interface Profile {
-    id: number;
+    id: string; // UUID em vez de number
     name: string;
     email: string;
-    avatar: string; // Propriedade visual para o HTML
-    role: string;   // Propriedade visual para o HTML
+    avatar: string;
+    role: string;
     idAvatar: number | null;
     idRole: number | null;
     level: number;
@@ -28,7 +28,7 @@ export class GamificationService {
     readonly profiles = signal<Profile[]>([]);
 
     readonly userProfile = signal<Profile>({
-        id: 1,
+        id: '',
         name: 'Aventureiro',
         email: '',
         avatar: '🧙‍♂️',
@@ -65,8 +65,8 @@ export class GamificationService {
                         id: item.id,
                         name: item.name,
                         email: item.email || '',
-                        avatar: '🧙‍♂️', // Valor visual padrão para o HTML
-                        role: 'Filho(a)',   // Valor visual padrão para o HTML
+                        avatar: '🧙‍♂️',
+                        role: 'Filho(a)',
                         idAvatar: item.id_avatar,
                         idRole: item.id_role,
                         level: item.level || 1,
@@ -88,11 +88,15 @@ export class GamificationService {
         });
     }
 
-    private seedDefaultProfile() {
+    private async seedDefaultProfile() {
+        const { data: { user } } = await this.client.auth.getUser();
+        if (!user) return;
+
         const initial = this.userProfile();
         const dbPayload = {
-            name: initial.name,
-            email: initial.email,
+            id: user.id, // ID deve corresponder exatamente ao auth.uid()
+            name: user.user_metadata?.['name'] || initial.name,
+            email: user.email || initial.email,
             id_avatar: initial.idAvatar,
             id_role: initial.idRole,
             level: initial.level,
@@ -100,7 +104,7 @@ export class GamificationService {
             max_xp: initial.maxXp,
             coins: initial.coins,
             streak_days: initial.streakDays,
-            active: initial.active
+            active: true
         };
 
         const promise = (this.client as any)
@@ -114,7 +118,7 @@ export class GamificationService {
         });
     }
 
-    switchActiveProfile(profileId: number) {
+    switchActiveProfile(profileId: string) {
         const currentList = this.profiles();
 
         currentList.forEach(p => {
@@ -139,9 +143,12 @@ export class GamificationService {
         }
     }
 
-    addProfile(name: string, email: string, avatarEmoji: string, roleName: string) {
-        // Envia as chaves estrangeiras numéricas para a base de dados
+    async addProfile(name: string, email: string, avatarEmoji: string, roleName: string) {
+        const { data: { user } } = await this.client.auth.getUser();
+        if (!user) return;
+
         const newProfileDb = {
+            id: user.id,
             name,
             email,
             id_avatar: 1,
