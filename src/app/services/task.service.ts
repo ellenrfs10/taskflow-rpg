@@ -3,6 +3,7 @@ import { SupabaseService } from './supabase-service';
 import { Task } from '../models/task.model';
 import { Observable, from } from 'rxjs';
 import { map, tap, switchMap } from 'rxjs/operators';
+import { GamificationService } from './gamification.service';
 
 @Injectable({
     providedIn: 'root'
@@ -10,6 +11,7 @@ import { map, tap, switchMap } from 'rxjs/operators';
 export class TaskService {
     private supabaseService = inject(SupabaseService);
     private client = this.supabaseService.supabaseClient;
+    private gamificationService = inject(GamificationService);
 
     readonly tasks = signal<Task[]>([]);
 
@@ -79,7 +81,8 @@ export class TaskService {
             xpReward: item.xp_reward ?? item.xpReward ?? 20,
             coinReward: item.coin_reward ?? item.coinReward ?? 10,
             dueDate: item.due_date || item.dueDate || '',
-            isCooperative: item.is_cooperative ?? item.isCooperative ?? false
+            isCooperative: item.is_cooperative ?? item.isCooperative ?? false,
+            participants: item.participants || [] // <-- Garante que apanha o array da BD
         };
     }
 
@@ -218,8 +221,16 @@ export class TaskService {
         const task = this.tasks().find(t => t.id === id);
         if (!task) return;
 
-        const updatedTask = { ...task, completed: !task.completed };
+        const newCompletedState = !task.completed;
+        const updatedTask = { ...task, completed: newCompletedState };
+
         this.updateTask(updatedTask).subscribe({
+            next: () => {
+                // Se a tarefa foi marcada como concluída, adiciona XP e Moedas ao perfil ativo
+                if (newCompletedState) {
+                    this.gamificationService.addRewards(task.xpReward, task.coinReward);
+                }
+            },
             error: (err: any) => console.error('Erro ao alternar tarefa:', err)
         });
     }

@@ -1,6 +1,7 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { SupabaseService } from './supabase-service';
-import { from } from 'rxjs';
+import { Observable, from } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export interface Profile {
     id: string; // UUID em vez de number
@@ -243,5 +244,24 @@ export class GamificationService {
         });
 
         return true;
+    }
+
+    updateAvatar(avatarId: number): Observable<any> {
+        const active = this.userProfile();
+        const promise = (this.client as any)
+            .from('profile')
+            .update({ id_avatar: avatarId })
+            .eq('id', active.id)
+            .select();
+
+        return from(promise).pipe(
+            map((response: any) => {
+                if (response.error) throw response.error;
+                const updated = { ...active, idAvatar: avatarId };
+                this.userProfile.set(updated);
+                this.profiles.update(list => list.map(p => p.id === active.id ? updated : p));
+                return response.data;
+            })
+        );
     }
 }
