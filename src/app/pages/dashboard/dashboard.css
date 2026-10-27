@@ -1,33 +1,107 @@
-/* Container Principal do Dashboard */
+/* Definição de Variáveis por Omissão (Dark Theme por padrão no estilo RPG) */
+:host {
+  --bg-main: #0f1225;
+  --card-bg: #1a1f3a;
+  --card-border: rgba(99, 102, 241, 0.2);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --secondary-bg: rgba(255, 255, 255, 0.05);
+  --secondary-hover: rgba(255, 255, 255, 0.1);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  --item-bg: rgba(15, 23, 42, 0.5);
+  --item-completed-bg: rgba(16, 185, 129, 0.1);
+}
+
+/* Modo Claro ativado via classe .dark-theme ausente / toggle */
+:host :not(.dark-theme) {
+  --bg-main: #f1f5f9;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --secondary-bg: #f1f5f9;
+  --secondary-hover: #e2e8f0;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --item-bg: #f8fafc;
+  --item-completed-bg: #f0fdf4;
+}
+
+/* Container Principal */
 .dashboard-container {
+  background-color: var(--bg-main);
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   gap: 2rem;
   max-width: 1100px;
   margin: 0 auto;
   padding: 1.5rem;
+  transition: background-color 0.3s ease;
+}
+
+/* Cabeçalho do Dashboard */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.header-welcome h1 {
+  margin: 0 0 4px 0;
+  font-size: 1.5rem;
+  color: var(--text-main);
+}
+
+.header-welcome p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.theme-toggle-btn {
+  background: var(--secondary-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-main);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.theme-toggle-btn:hover {
+  transform: scale(1.05);
+  background: var(--secondary-hover);
 }
 
 /* Grelhas do Dashboard */
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.5rem;
-}
-
+.dashboard-grid,
 .dashboard-task-lists-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.5rem;
 }
 
 /* Estilo Base dos Cartões */
 .card {
-  background: #ffffff;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--card-border);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 /* Cartão do Perfil */
@@ -44,9 +118,9 @@
 }
 
 .avatar-icon {
-  font-size: 4.5rem;
-  background: #f1f5f9;
-  padding: 1rem;
+  font-size: 4rem;
+  background: var(--secondary-bg);
+  padding: 0.75rem;
   border-radius: 50%;
   display: inline-block;
   line-height: 1;
@@ -54,14 +128,14 @@
 
 .level-badge {
   position: absolute;
-  bottom: -8px;
+  bottom: -6px;
   left: 50%;
   transform: translateX(-50%);
-  background: #3b82f6;
+  background: var(--primary);
   color: white;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: bold;
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 20px;
   white-space: nowrap;
 }
@@ -72,13 +146,14 @@
 
 .user-info h2 {
   margin: 0.5rem 0 0.25rem 0;
-  color: #1e293b;
+  color: var(--text-main);
+  font-size: 1.25rem;
 }
 
 .streak {
   color: #ea580c;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   margin-bottom: 1rem;
 }
 
@@ -90,16 +165,16 @@
 .xp-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 0.85rem;
-  color: #64748b;
+  font-size: 0.8rem;
+  color: var(--text-muted);
   margin-bottom: 0.25rem;
   font-weight: 600;
 }
 
 .progress-bar-bg {
-  background: #e2e8f0;
+  background: var(--secondary-bg);
   border-radius: 10px;
-  height: 12px;
+  height: 10px;
   overflow: hidden;
 }
 
@@ -113,10 +188,11 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: #fef3c7;
-  color: #b45309;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
   font-weight: bold;
-  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
   border-radius: 8px;
   margin-top: 0.5rem;
 }
@@ -130,16 +206,16 @@
 
 .stats-card h3,
 .task-list-card h3 {
-  color: #1e293b;
+  color: var(--text-main);
   margin-top: 0;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 700;
 }
 
 .stats-overview {
   display: flex;
   justify-content: space-around;
-  margin: 1.5rem 0;
+  margin: 1rem 0;
 }
 
 .stat-item {
@@ -148,14 +224,14 @@
 
 .stat-number {
   display: block;
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   font-weight: bold;
-  color: #2563eb;
+  color: var(--primary);
 }
 
 .stat-label {
-  font-size: 0.9rem;
-  color: #64748b;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 /* Botões e Ações */
@@ -171,29 +247,35 @@
   text-decoration: none;
   font-weight: 600;
   text-align: center;
-  transition: background 0.2s ease;
-  display: inline-block;
+  transition: background 0.2s ease, transform 0.1s ease;
+  display: block;
+  font-size: 0.95rem;
+}
+
+.btn:active {
+  transform: scale(0.98);
 }
 
 .btn-primary {
-  background: #2563eb;
+  background: var(--primary);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #1d4ed8;
+  background: var(--primary-hover);
 }
 
 .btn-secondary {
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--secondary-bg);
+  color: var(--text-main);
+  border: 1px solid var(--card-border);
 }
 
 .btn-secondary:hover {
-  background: #e2e8f0;
+  background: var(--secondary-hover);
 }
 
-/* Listas de Resumo de Tarefas no Dashboard */
+/* Listas de Resumo de Tarefas */
 .task-summary-list {
   list-style: none;
   padding: 0;
@@ -208,45 +290,72 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
-  background: #f8fafc;
+  background: var(--item-bg);
   border-radius: 8px;
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid var(--primary);
+  gap: 0.5rem;
 }
 
 .task-summary-item.completed {
-  background: #f0fdf4;
-  border-left-color: #22c55e;
-  opacity: 0.85;
+  background: var(--item-completed-bg);
+  border-left-color: #10b981;
 }
 
 .task-summary-item .task-title {
-  color: #0f172a;
+  color: var(--text-main);
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .urgency-badge {
-  font-size: 0.7rem;
-  padding: 0.2rem 0.5rem;
+  font-size: 0.65rem;
+  padding: 0.2rem 0.4rem;
   border-radius: 4px;
   font-weight: bold;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.urgency-badge.baixa { background: #dcfce7; color: #15803d; }
-.urgency-badge.media { background: #fef9c3; color: #a16207; }
-.urgency-badge.alta { background: #ffedd5; color: #c2410c; }
-.urgency-badge.critica { background: #fee2e2; color: #b91c1c; }
+.urgency-badge.baixa { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.urgency-badge.media { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.urgency-badge.alta { background: rgba(249, 115, 22, 0.15); color: #f97316; }
+.urgency-badge.critica { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
 
 .reward-badge {
-  color: #16a34a;
+  color: #10b981;
   font-weight: bold;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
 
 .empty-state {
   text-align: center;
-  color: #64748b;
-  padding: 1.5rem 0;
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  padding: 1.2rem 0;
+  font-size: 0.85rem;
+}
+
+/* Ajustes Responsivos Específicos para Mobile */
+@media (max-width: 640px) {
+  .dashboard-container {
+    padding: 1rem;
+    gap: 1.25rem;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .theme-toggle-btn {
+    width: 100%;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+  }
 }

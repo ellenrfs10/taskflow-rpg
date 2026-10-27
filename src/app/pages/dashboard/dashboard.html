@@ -1,6 +1,19 @@
-<main class="dashboard-container">
+<main class="dashboard-container" [class.dark-theme]="isDarkMode">
+  <!-- Cabeçalho do Dashboard com Alternância de Tema -->
+  <header class="dashboard-header">
+    <div class="header-welcome">
+      <h1>Painel do Herói</h1>
+      <p>Gerencia as tuas missões e acompanha a tua evolução.</p>
+    </div>
+    <button type="button" class="theme-toggle-btn" (click)="toggleTheme()" aria-label="Alternar modo escuro ou claro">
+      <span *ngIf="isDarkMode">☀️ Modo Claro</span>
+      <span *ngIf="!isDarkMode">🌙 Modo Escuro</span>
+    </button>
+  </header>
+
+  <!-- Grelha Superior: Perfil e Resumo -->
   <div class="dashboard-grid">
-    <!-- Cartão do Perfil do Jogador (Gamificação via Signals) -->
+    <!-- Cartão do Perfil do Jogador -->
     <section class="card profile-card" *ngIf="userProfile() as user" aria-labelledby="profile-heading">
       <header class="sr-only">
         <h2 id="profile-heading">Perfil do Jogador</h2>
@@ -44,12 +57,10 @@
       
       <div class="stats-overview">
         <div class="stat-item">
-          <!-- ATENÇÃO AOS PARÊNTESES AQUI 👇 -->
           <span class="stat-number">{{ pendingTasks().length }}</span>
           <span class="stat-label">Pendentes</span>
         </div>
         <div class="stat-item">
-          <!-- ATENÇÃO AOS PARÊNTESES AQUI 👇 -->
           <span class="stat-number">{{ completedTasks().length }}</span>
           <span class="stat-label">Concluídas</span>
         </div>
@@ -62,7 +73,7 @@
     </section>
   </div>
 
-  <!-- Secções com as Listas de Tarefas em detalhe -->
+  <!-- Grelha Inferior: Listas Detalhadas de Tarefas -->
   <div class="dashboard-task-lists-grid">
     <!-- Lista de Tarefas Pendentes -->
     <section class="card task-list-card" aria-labelledby="pending-list-heading">
@@ -70,12 +81,10 @@
         <h3 id="pending-list-heading">⏳ Missões Pendentes</h3>
       </header>
 
-      <!-- ATENÇÃO AOS PARÊNTESES AQUI 👇 -->
       <div *ngIf="pendingTasks().length === 0" class="empty-state">
         <p>Não há missões pendentes. Bom trabalho!</p>
       </div>
 
-      <!-- ATENÇÃO AOS PARÊNTESES AQUI 👇 -->
       <ul class="task-summary-list" role="list" *ngIf="pendingTasks().length > 0">
         <li *ngFor="let task of pendingTasks()" class="task-summary-item">
           <span class="task-title">{{ task.title }}</span>
@@ -90,12 +99,10 @@
         <h3 id="completed-list-heading">✅ Missões Concluídas</h3>
       </header>
 
-      <!-- ATENÇÃO AOS PARÊNTESES AQUI 👇 -->
       <div *ngIf="completedTasks().length === 0" class="empty-state">
         <p>Ainda nenhuma missão concluída.</p>
       </div>
 
-      <!-- ATENÇÃO AOS PARÊNTESES AQUI 👇 -->
       <ul class="task-summary-list" role="list" *ngIf="completedTasks().length > 0">
         <li *ngFor="let task of completedTasks()" class="task-summary-item completed">
           <span class="task-title">{{ task.title }}</span>

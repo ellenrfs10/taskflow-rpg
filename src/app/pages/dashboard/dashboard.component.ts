@@ -22,8 +22,16 @@ export class DashboardComponent implements OnInit {
   readonly pendingTasks = computed(() => this.taskService.tasks().filter(t => !t.completed));
   readonly completedTasks = computed(() => this.taskService.tasks().filter(t => t.completed));
 
+  // Controlo para o Dark Mode / Light Mode
+  isDarkMode = true;
+
   ngOnInit() {
     // Garante que busca e sincroniza as tarefas do Supabase ao abrir o dashboard
     this.taskService.loadTasks();
+  }
+
+  // Método para alternar entre o modo escuro e claro
+  toggleTheme() {
+    this.isDarkMode = !this.isDarkMode;
   }
 }

@@ -20,6 +20,9 @@ export class AuthComponent {
     errorMessage = signal<string | null>(null);
     loading = signal<boolean>(false);
 
+    // Controlo para o Dark Mode / Light Mode
+    isDarkMode = true;
+
     authForm: FormGroup = this.fb.group({
         email: ['', [Validators.required, Validators.email]],
         password: ['', [Validators.required, Validators.minLength(6)]]
@@ -28,6 +31,10 @@ export class AuthComponent {
     toggleMode() {
         this.isLoginMode.update(val => !val);
         this.errorMessage.set(null);
+    }
+
+    toggleTheme() {
+        this.isDarkMode = !this.isDarkMode;
     }
 
     onSubmit() {

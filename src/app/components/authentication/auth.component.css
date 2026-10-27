@@ -1,105 +1,251 @@
+/* Variáveis de Cores Base (Light & Dark Themes) */
+:host {
+  --bg-main: #0f1225;
+  --bg-gradient: radial-gradient(circle at top right, #1e1b4b, #0f1225);
+  --card-bg: rgba(26, 31, 58, 0.75);
+  --card-border: rgba(99, 102, 241, 0.2);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --input-bg: rgba(15, 23, 42, 0.6);
+  --input-border: #334155;
+  --input-text: #ffffff;
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Modo Claro ativado via classe */
+:host :not(.dark-theme) {
+  --bg-main: #f1f5f9;
+  --bg-gradient: linear-gradient(135deg, #e2e8f0 0%, #f8fafc 100%);
+  --card-bg: #ffffff;
+  --card-border: #cbd5e1;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --input-bg: #f8fafc;
+  --input-border: #cbd5e1;
+  --input-text: #0f172a;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.auth-wrapper {
+  background: var(--bg-gradient);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  transition: background 0.3s ease;
+  padding: 20px;
+}
+
+/* Botão de Alternância de Tema no Canto Superior */
+.theme-toggle-container {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+}
+
+.theme-toggle-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-main);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.theme-toggle-btn:hover {
+  transform: scale(1.05);
+}
+
+/* Layout do Container de Autenticação */
 .auth-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 80vh;
-    padding: 20px;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  justify-content: center;
 }
 
 .auth-card {
-    width: 100%;
-    max-width: 420px;
-    padding: 32px;
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+  width: 100%;
+  padding: 40px 36px;
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  transition: background 0.3s, border-color 0.3s;
+}
+
+/* Cabeçalho do Card */
+.auth-header {
+  text-align: center;
+}
+
+.auth-logo-badge {
+  display: inline-block;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 12px;
 }
 
 .auth-card h2 {
-    margin: 0 0 10px 0;
-    font-size: 1.5rem;
-    color: #1f2937;
-    text-align: center;
+  margin: 0 0 8px 0;
+  font-size: 1.4rem;
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.auth-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* Formulário e Campos */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .form-group label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #4b5563;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  font-size: 1rem;
+  user-select: none;
 }
 
 .form-group input {
-    padding: 10px 14px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 1rem;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  padding: 12px 14px 12px 42px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: var(--input-text);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
 }
 
 .form-group input:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
-.error-message {
-    background-color: #fee2e2;
-    color: #991b1b;
-    padding: 10px 12px;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    margin-bottom: 16px;
+/* Alerta de Erro */
+.error-banner {
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
 }
 
+.error-banner p {
+  margin: 0;
+}
+
+/* Botões */
 .btn {
-    width: 100%;
-    padding: 12px;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn:active {
+  transform: scale(0.98);
 }
 
 .btn-primary {
-    background-color: #6366f1;
-    color: white;
+  background-color: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
-    background-color: #4f46e5;
+  background-color: var(--primary-hover);
 }
 
 .btn:disabled {
-    background-color: #9ca3af;
-    cursor: not-allowed;
+  background-color: #64748b;
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Rodapé e Alternância de Modo (Login / Registo) */
+.auth-footer {
+  text-align: center;
+  border-top: 1px solid var(--card-border);
+  padding-top: 16px;
 }
 
 .switch-text {
-    text-align: center;
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-top: 10px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
 }
 
-.switch-text a {
-    color: #6366f1;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: underline;
+.switch-link {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+  font-size: 0.85rem;
+  text-decoration: underline;
 }
 
-.switch-text a:hover {
-    color: #4f46e5;
+.switch-link:hover {
+  color: var(--primary-hover);
 }

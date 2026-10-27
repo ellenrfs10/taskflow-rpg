@@ -1,32 +1,79 @@
-<div class="auth-container">
+<main class="auth-wrapper" [class.dark-theme]="isDarkMode">
+  <!-- Botão de Alternância de Tema (Dark/Light Mode) -->
+  <aside class="theme-toggle-container">
+    <button type="button" class="theme-toggle-btn" (click)="toggleTheme()" aria-label="Alternar modo escuro ou claro">
+      <span *ngIf="isDarkMode">☀️ Modo Claro</span>
+      <span *ngIf="!isDarkMode">🌙 Modo Escuro</span>
+    </button>
+  </aside>
+
+  <section class="auth-container">
     <div class="card auth-card">
-        <h2>{{ isLoginMode() ? '🔑 Entrar no TaskFlow' : '✨ Criar Nova Conta' }}</h2>
-
-        <form [formGroup]="authForm" (ngSubmit)="onSubmit()">
-            <div class="form-group">
-                <label for="email">E-mail</label>
-                <input id="email" type="email" formControlName="email" placeholder="teu@email.com" />
-            </div>
-
-            <div class="form-group">
-                <label for="password">Palavra-passe</label>
-                <input id="password" type="password" formControlName="password" placeholder="Mínimo de 6 caracteres" />
-            </div>
-
-            <div *ngIf="errorMessage()" class="error-message">
-                ⚠️ {{ errorMessage() }}
-            </div>
-
-            <button type="submit" class="btn btn-primary" [disabled]="authForm.invalid || loading()">
-                {{ loading() ? 'A processar...' : (isLoginMode() ? 'Entrar' : 'Registar') }}
-            </button>
-        </form>
-
-        <p class="switch-text">
-            {{ isLoginMode() ? 'Ainda não tens conta?' : 'Já tens conta?' }}
-            <a type="button" (click)="toggleMode()">
-                {{ isLoginMode() ? 'Regista-te aqui' : 'Faz login' }}
-            </a>
+      
+      <!-- Cabeçalho com identidade visual RPG -->
+      <header class="auth-header">
+        <div class="auth-logo-badge">⚔️ TaskFlow RPG</div>
+        <h2>{{ isLoginMode() ? 'Bem-vindo de volta, Aventureiro!' : 'Registo de Novo Herói' }}</h2>
+        <p class="auth-subtitle">
+          {{ isLoginMode() ? 'Introduz as tuas credenciais para continuar a tua jornada.' : 'Cria a tua conta e começa a ganhar recompensas.' }}
         </p>
+      </header>
+
+      <!-- Formulário -->
+      <form [formGroup]="authForm" (ngSubmit)="onSubmit()" class="auth-form">
+        
+        <div class="form-group">
+          <label for="email">E-mail</label>
+          <div class="input-wrapper">
+            <span class="input-icon" aria-hidden="true">✉️</span>
+            <input 
+              id="email" 
+              type="email" 
+              formControlName="email" 
+              placeholder="aventureiro@email.com" 
+              autocomplete="email"
+              required 
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Palavra-passe</label>
+          <div class="input-wrapper">
+            <span class="input-icon" aria-hidden="true">🔒</span>
+            <input 
+              id="password" 
+              type="password" 
+              formControlName="password" 
+              placeholder="Mínimo de 6 caracteres" 
+              autocomplete="current-password"
+              required 
+            />
+          </div>
+        </div>
+
+        <!-- Mensagem de Erro Semântica -->
+        <aside *ngIf="errorMessage()" class="error-banner" role="alert">
+          <p>⚠️ {{ errorMessage() }}</p>
+        </aside>
+
+        <!-- Botão de Ação -->
+        <button type="submit" class="btn btn-primary" [disabled]="authForm.invalid || loading()">
+          <span *ngIf="loading()" class="spinner" aria-hidden="true"></span>
+          {{ loading() ? 'A processar...' : (isLoginMode() ? 'Entrar na Aventura 🚀' : 'Criar Conta e Jogar ✨') }}
+        </button>
+      </form>
+
+      <!-- Rodapé do Card / Alternância de Modo -->
+      <footer class="auth-footer">
+        <p class="switch-text">
+          {{ isLoginMode() ? 'Ainda não tens uma conta?' : 'Já tens uma conta?' }}
+          <button type="button" class="switch-link" (click)="toggleMode()">
+            {{ isLoginMode() ? 'Regista-te aqui' : 'Faz login' }}
+          </button>
+        </p>
+      </footer>
+
     </div>
-</div>
+  </section>
+</main>
