@@ -10,10 +10,8 @@ import { Task } from '../../models/task.model';
   styleUrl: './task-card.component.css'
 })
 export class TaskCardComponent {
-  // @Input: Recebe os dados do componente Pai (TaskListComponent)
   @Input({ required: true }) task!: Task;
 
-  // @Output: Emite eventos para o componente Pai tratar
   @Output() complete = new EventEmitter<Task>();
   @Output() delete = new EventEmitter<number>();
 

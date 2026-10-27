@@ -1,54 +1,107 @@
-<div class="dashboard-grid">
-  <!-- Cartão do Perfil do Jogador (Gamificação via Signals) -->
-  <section class="card profile-card" *ngIf="userProfile() as user">
-    <div class="avatar-container">
-      <span class="avatar-icon">{{ user.avatar }}</span>
-      <span class="level-badge">Nível {{ user.level }}</span>
-    </div>
-    
-    <div class="user-info">
-      <h2>{{ user.name }}</h2>
-      <div class="streak">🔥 Sequência: {{ user.streakDays }} dias seguidos!</div>
+<main class="dashboard-container">
+  <div class="dashboard-grid">
+    <!-- Cartão do Perfil do Jogador (Gamificação via Signals) -->
+    <section class="card profile-card" *ngIf="userProfile() as user" aria-labelledby="profile-heading">
+      <header class="sr-only">
+        <h2 id="profile-heading">Perfil do Jogador</h2>
+      </header>
+
+      <div class="avatar-container">
+        <span class="avatar-icon" aria-hidden="true">{{ user.avatar }}</span>
+        <span class="level-badge">Nível {{ user.level }}</span>
+      </div>
       
-      <!-- Barra de XP -->
-      <div class="xp-section">
-        <div class="xp-labels">
-          <span>XP: {{ user.currentXp }} / {{ user.maxXp }}</span>
-          <span>{{ (user.currentXp / user.maxXp) * 100 | number:'1.0-0' }}%</span>
-        </div>
-        <div class="progress-bar-bg">
-          <div 
-            class="progress-bar-fill" 
-            [style.width.%]="(user.currentXp / user.maxXp) * 100">
+      <div class="user-info">
+        <h2>{{ user.name }}</h2>
+        <p class="streak">🔥 Sequência: {{ user.streakDays }} dias seguidos!</p>
+        
+        <!-- Barra de XP -->
+        <div class="xp-section" aria-label="Progresso de Experiência">
+          <div class="xp-labels">
+            <span>XP: {{ user.currentXp }} / {{ user.maxXp }}</span>
+            <span>{{ (user.currentXp / user.maxXp) * 100 | number:'1.0-0' }}%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div 
+              class="progress-bar-fill" 
+              [style.width.%]="(user.currentXp / user.maxXp) * 100">
+            </div>
           </div>
         </div>
+
+        <!-- Carteira de Moedas -->
+        <div class="coins-badge">
+          🪙 <span>{{ user.coins }} Moedas de Ouro</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Resumo Rápido das Missões -->
+    <section class="card stats-card" aria-labelledby="stats-heading">
+      <header>
+        <h3 id="stats-heading">📊 Resumo de Missões</h3>
+      </header>
+      
+      <div class="stats-overview">
+        <div class="stat-item">
+          <!-- ATENÇÃO AOS PARÊNTESES AQUI 👇 -->
+          <span class="stat-number">{{ pendingTasks().length }}</span>
+          <span class="stat-label">Pendentes</span>
+        </div>
+        <div class="stat-item">
+          <!-- ATENÇÃO AOS PARÊNTESES AQUI 👇 -->
+          <span class="stat-number">{{ completedTasks().length }}</span>
+          <span class="stat-label">Concluídas</span>
+        </div>
       </div>
 
-      <!-- Carteira de Moedas -->
-      <div class="coins-badge">
-        🪙 <span>{{ user.coins }} Moedas de Ouro</span>
-      </div>
-    </div>
-  </section>
+      <nav class="actions" aria-label="Ações rápidas do dashboard">
+        <a routerLink="/missions" class="btn btn-primary">Ir para Quadro de Missões ⚔️</a>
+        <a routerLink="/shop" class="btn btn-secondary">Visitar a Loja 🛍️</a>
+      </nav>
+    </section>
+  </div>
 
-  <!-- Resumo Rápido das Missões -->
-  <section class="card stats-card">
-    <h3>📊 Resumo de Missões</h3>
-    
-    <div class="stats-overview">
-      <div class="stat-item">
-        <span class="stat-number">{{ pendingTasksCount }}</span>
-        <span class="stat-label">Pendentes</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-number">{{ completedTasksCount }}</span>
-        <span class="stat-label">Concluídas</span>
-      </div>
-    </div>
+  <!-- Secções com as Listas de Tarefas em detalhe -->
+  <div class="dashboard-task-lists-grid">
+    <!-- Lista de Tarefas Pendentes -->
+    <section class="card task-list-card" aria-labelledby="pending-list-heading">
+      <header>
+        <h3 id="pending-list-heading">⏳ Missões Pendentes</h3>
+      </header>
 
-    <div class="actions">
-      <a routerLink="/missions" class="btn btn-primary">Ir para Quadro de Missões ⚔️</a>
-      <a routerLink="/shop" class="btn btn-secondary">Visitar a Loja 🛍️</a>
-    </div>
-  </section>
-</div>
+      <!-- ATENÇÃO AOS PARÊNTESES AQUI 👇 -->
+      <div *ngIf="pendingTasks().length === 0" class="empty-state">
+        <p>Não há missões pendentes. Bom trabalho!</p>
+      </div>
+
+      <!-- ATENÇÃO AOS PARÊNTESES AQUI 👇 -->
+      <ul class="task-summary-list" role="list" *ngIf="pendingTasks().length > 0">
+        <li *ngFor="let task of pendingTasks()" class="task-summary-item">
+          <span class="task-title">{{ task.title }}</span>
+          <span class="urgency-badge" [ngClass]="task.urgency">{{ task.urgency | titlecase }}</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Lista de Tarefas Concluídas -->
+    <section class="card task-list-card" aria-labelledby="completed-list-heading">
+      <header>
+        <h3 id="completed-list-heading">✅ Missões Concluídas</h3>
+      </header>
+
+      <!-- ATENÇÃO AOS PARÊNTESES AQUI 👇 -->
+      <div *ngIf="completedTasks().length === 0" class="empty-state">
+        <p>Ainda nenhuma missão concluída.</p>
+      </div>
+
+      <!-- ATENÇÃO AOS PARÊNTESES AQUI 👇 -->
+      <ul class="task-summary-list" role="list" *ngIf="completedTasks().length > 0">
+        <li *ngFor="let task of completedTasks()" class="task-summary-item completed">
+          <span class="task-title">{{ task.title }}</span>
+          <span class="reward-badge">+{{ task.xpReward }} XP</span>
+        </li>
+      </ul>
+    </section>
+  </div>
+</main>

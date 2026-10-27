@@ -26,6 +26,7 @@ export class TaskService {
             coin_reward: 15,
             due_date: null,
             is_cooperative: false,
+            participants: [],
             created_at: new Date().toISOString()
         },
         {
@@ -38,6 +39,7 @@ export class TaskService {
             coin_reward: 25,
             due_date: null,
             is_cooperative: false,
+            participants: [],
             created_at: new Date().toISOString()
         },
         {
@@ -50,6 +52,7 @@ export class TaskService {
             coin_reward: 10,
             due_date: null,
             is_cooperative: false,
+            participants: [],
             created_at: new Date().toISOString()
         },
         {
@@ -62,6 +65,7 @@ export class TaskService {
             coin_reward: 20,
             due_date: null,
             is_cooperative: false,
+            participants: [],
             created_at: new Date().toISOString()
         }
     ];
@@ -82,7 +86,7 @@ export class TaskService {
             coinReward: item.coin_reward ?? item.coinReward ?? 10,
             dueDate: item.due_date || item.dueDate || '',
             isCooperative: item.is_cooperative ?? item.isCooperative ?? false,
-            participants: item.participants || [] // <-- Garante que apanha o array da BD
+            participants: item.participants || []
         };
     }
 
@@ -166,6 +170,7 @@ export class TaskService {
                     coin_reward: Number(taskData.coinReward ?? taskData.coin_reward) || 10,
                     due_date: taskData.dueDate ?? taskData.due_date ?? null,
                     is_cooperative: taskData.isCooperative ?? taskData.is_cooperative ?? false,
+                    participants: taskData.participants || [], // <-- Garante o envio dos participantes
                     created_at: new Date().toISOString(),
                     profile_id: user.id
                 };
@@ -197,7 +202,8 @@ export class TaskService {
             xp_reward: task.xpReward,
             coin_reward: task.coinReward,
             due_date: task.dueDate || null,
-            is_cooperative: task.isCooperative
+            is_cooperative: task.isCooperative,
+            participants: task.participants || [] // <-- Garante a atualização dos participantes
         };
 
         const promise = (this.client as any)
@@ -226,7 +232,6 @@ export class TaskService {
 
         this.updateTask(updatedTask).subscribe({
             next: () => {
-                // Se a tarefa foi marcada como concluída, adiciona XP e Moedas ao perfil ativo
                 if (newCompletedState) {
                     this.gamificationService.addRewards(task.xpReward, task.coinReward);
                 }
