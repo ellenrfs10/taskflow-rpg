@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ShopService } from '../../services/shop.service';
 import { GamificationService } from '../../services/gamification.service';
+import { SupabaseService } from '../../services/supabase-service';
 import { Reward, RewardCategory } from '../../models/reward.model';
 
 @Component({
@@ -15,6 +16,7 @@ import { Reward, RewardCategory } from '../../models/reward.model';
 export class ShopComponent {
   private shopService = inject(ShopService);
   private gamificationService = inject(GamificationService);
+  private supabaseService = inject(SupabaseService);
   private fb = inject(FormBuilder);
 
   // Perfil ativo
@@ -65,15 +67,53 @@ export class ShopComponent {
     this.sortByPrice.set(order);
   }
 
-  // Ações de Comprar, Adicionar e Eliminar
-  buyReward(reward: Reward) {
-    if (this.user().coins >= reward.cost) {
-      const success = this.gamificationService.spendCoins(reward.cost);
-      if (success) {
-        alert(`🎉 Parabéns! Resgataste "${reward.title}"!`);
-      }
-    } else {
+  // Ação de Comprar Prémio (com conversão segura do ID para string)
+  async buyReward(reward: Reward) {
+    const currentUser = this.user();
+
+    // 1. Validar se o utilizador e o ID existem
+    if (!currentUser || currentUser.id === undefined || currentUser.id === null) {
+      alert('❌ Erro: Utilizador não identificado.');
+      return;
+    }
+
+    // Converte o ID para string para satisfazer a tipagem da tabela
+    const userId: string = String(currentUser.id);
+
+    if (currentUser.coins < reward.cost) {
       alert('❌ Moedas insuficientes para resgatar este prémio!');
+      return;
+    }
+
+    const client = this.supabaseService.supabaseClient;
+    const newCoins = currentUser.coins - reward.cost;
+
+    try {
+      // 2. Descontar as moedas no perfil do herói
+      const { error: profileError } = await client
+        .from('profile')
+        .update({ coins: newCoins })
+        .eq('id', userId);
+
+      if (profileError) throw profileError;
+
+      // 3. Registar o resgate na tabela user_rewards
+      const { error: rewardError } = await client
+        .from('user_rewards')
+        .insert({
+          profile_id: userId,
+          reward_id: Number(reward.id)
+        });
+
+      if (rewardError) throw rewardError;
+
+      // 4. Atualizar o ecrã para refletir as novas moedas
+      window.location.reload();
+
+      alert(`🎉 Parabéns! Resgataste "${reward.title}" com sucesso!`);
+    } catch (err: any) {
+      console.error('Erro ao processar resgate:', err);
+      alert('❌ Ocorreu um erro ao resgatar o prémio. Tenta novamente.');
     }
   }
 

@@ -41,46 +41,36 @@ export type Database = {
     Tables: {
       avatar: {
         Row: {
-          boy: string
+          category: string | null
           created_at: string
-          girl: string
           id: number
-          man: string
-          old_boy: string
-          old_woman: string
-          woman: string
+          image_url: string
+          name: string
         }
         Insert: {
-          boy: string
+          category?: string | null
           created_at?: string
-          girl: string
           id?: number
-          man: string
-          old_boy: string
-          old_woman: string
-          woman: string
+          image_url: string
+          name: string
         }
         Update: {
-          boy?: string
+          category?: string | null
           created_at?: string
-          girl?: string
           id?: number
-          man?: string
-          old_boy?: string
-          old_woman?: string
-          woman?: string
+          image_url?: string
+          name?: string
         }
         Relationships: []
       }
       profile: {
         Row: {
           active: boolean | null
-          "avatar?": string | null
           coins: number | null
           created_at: string
           current_xp: number | null
           email: string
-          id: number
+          id: string
           id_avatar: number | null
           id_role: number | null
           level: number | null
@@ -90,12 +80,11 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
-          "avatar?"?: string | null
           coins?: number | null
           created_at?: string
           current_xp?: number | null
           email: string
-          id?: number
+          id: string
           id_avatar?: number | null
           id_role?: number | null
           level?: number | null
@@ -105,12 +94,11 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
-          "avatar?"?: string | null
           coins?: number | null
           created_at?: string
           current_xp?: number | null
           email?: string
-          id?: number
+          id?: string
           id_avatar?: number | null
           id_role?: number | null
           level?: number | null
@@ -120,14 +108,28 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "profiles_id_avatar_fkey"
+            foreignKeyName: "fk_profile_avatar"
             columns: ["id_avatar"]
             isOneToOne: false
             referencedRelation: "avatar"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "profiles_id_role_fkey"
+            foreignKeyName: "fk_profile_role"
+            columns: ["id_role"]
+            isOneToOne: false
+            referencedRelation: "role"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_id_avatar_fkey"
+            columns: ["id_avatar"]
+            isOneToOne: false
+            referencedRelation: "avatar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_id_role_fkey"
             columns: ["id_role"]
             isOneToOne: false
             referencedRelation: "role"
@@ -137,29 +139,29 @@ export type Database = {
       }
       rewards: {
         Row: {
-          category: string
+          category: string | null
           cost: number
           created_at: string
           description: string
-          icon: string
+          icon: string | null
           id: number
           title: string
         }
         Insert: {
-          category: string
+          category?: string | null
           cost: number
-          created_at: string
+          created_at?: string
           description: string
-          icon: string
+          icon?: string | null
           id?: number
           title: string
         }
         Update: {
-          category?: string
+          category?: string | null
           cost?: number
           created_at?: string
           description?: string
-          icon?: string
+          icon?: string | null
           id?: number
           title?: string
         }
@@ -188,7 +190,7 @@ export type Database = {
       }
       tasks: {
         Row: {
-          category: string
+          category: string | null
           coin_reward: number | null
           completed: boolean | null
           created_at: string
@@ -197,26 +199,13 @@ export type Database = {
           id: number
           is_cooperative: boolean | null
           participants: string[] | null
+          profile_id: string | null
           title: string
           urgency: string | null
           xp_reward: number | null
         }
         Insert: {
-          category: string
-          coin_reward?: number | null
-          completed?: boolean | null
-          created_at: string
-          description?: string | null
-          due_date?: string | null
-          id?: number
-          is_cooperative?: boolean | null
-          participants?: string[] | null
-          title: string
-          urgency?: string | null
-          xp_reward?: number | null
-        }
-        Update: {
-          category?: string
+          category?: string | null
           coin_reward?: number | null
           completed?: boolean | null
           created_at?: string
@@ -225,11 +214,71 @@ export type Database = {
           id?: number
           is_cooperative?: boolean | null
           participants?: string[] | null
+          profile_id?: string | null
+          title: string
+          urgency?: string | null
+          xp_reward?: number | null
+        }
+        Update: {
+          category?: string | null
+          coin_reward?: number | null
+          completed?: boolean | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: number
+          is_cooperative?: boolean | null
+          participants?: string[] | null
+          profile_id?: string | null
           title?: string
           urgency?: string | null
           xp_reward?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tasks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_rewards: {
+        Row: {
+          id: number
+          profile_id: string
+          redeemed_at: string
+          reward_id: number
+        }
+        Insert: {
+          id?: number
+          profile_id: string
+          redeemed_at?: string
+          reward_id: number
+        }
+        Update: {
+          id?: number
+          profile_id?: string
+          redeemed_at?: string
+          reward_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_rewards_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_rewards_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "rewards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
