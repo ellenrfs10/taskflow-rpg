@@ -31,8 +31,8 @@ jobs:
 
       - name: Create environment file
         env:
-          SUPABASE_URL: ${{ secrets.supabaseURL }}
-          SUPABASE_KEY: ${{ secrets.supabaseKey }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
           mkdir -p src/environments
           cat > src/environments/environment.ts <<EOF
