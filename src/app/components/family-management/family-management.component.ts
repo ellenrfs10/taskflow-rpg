@@ -28,7 +28,7 @@ export class FamilyManagementComponent {
 
     avatars = ['🧙‍♀️', '🧙‍♂️', '🛡️', '⚔️', '🏹', '🐉', '🦁', '👑', '🦸‍♂️'];
 
-    switchMember(id: number) {
+    switchMember(id: string) {
         this.gamificationService.switchActiveProfile(id);
     }
 
