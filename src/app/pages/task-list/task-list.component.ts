@@ -15,19 +15,18 @@ import { TaskCardComponent } from '../../components/task-card/task-card.componen
 })
 export class TaskListComponent implements OnInit {
   private taskService = inject(TaskService);
-  private gamificationService = inject(GamificationService);
+  private gamificationService: GamificationService = inject(GamificationService);
   private fb = inject(FormBuilder);
 
   tasks: Task[] = [];
   isLoading = false;
   errorMessage = '';
 
-  // Membros e termo de busca para o filtro de participantes
+  // Lista de perfis para seleção de participantes
   members = this.gamificationService.profiles;
   memberSearchTerm: string = '';
   selectedParticipants: ParticipantContribution[] = [];
 
-  // Formulário Reativo
   taskForm: FormGroup = this.fb.group({
     title: ['', [Validators.required, Validators.minLength(3)]],
     description: [''],
@@ -57,13 +56,13 @@ export class TaskListComponent implements OnInit {
     });
   }
 
-  // Getter para filtrar membros com base na barra de pesquisa
   get filteredMembers() {
-    const term = this.memberSearchTerm.toLowerCase();
-    return this.members().filter(m => m.name.toLowerCase().includes(term));
+    const term = this.memberSearchTerm.toLowerCase().trim();
+    const list = this.members() as any[];
+    if (!term) return list;
+    return list.filter((m: any) => m?.name?.toLowerCase().includes(term));
   }
 
-  // Getters para separar tarefas pendentes e concluídas
   get pendingTasks() {
     return this.tasks.filter(t => !t.completed);
   }
@@ -74,14 +73,14 @@ export class TaskListComponent implements OnInit {
 
   onParticipantToggle(member: any, event: any) {
     if (event.target.checked) {
-      // Evita duplicados
-      if (!this.selectedParticipants.find(p => p.userId === member.id)) {
-        this.selectedParticipants.push({
-          userId: member.id,
-          userName: member.name,
-          actionsCompleted: 0
-        });
-      }
+      const alreadyExists = this.selectedParticipants.some(p => p.userId === member.id);
+      if (alreadyExists) return;
+
+      this.selectedParticipants.push({
+        userId: member.id,
+        userName: member.name,
+        actionsCompleted: 0
+      });
     } else {
       this.selectedParticipants = this.selectedParticipants.filter(p => p.userId !== member.id);
     }
@@ -93,7 +92,11 @@ export class TaskListComponent implements OnInit {
     const formValues = this.taskForm.value;
     const rewards = this.calculateRewards(formValues.urgency);
 
-    const newTaskData: Omit<Task, 'id'> = {
+    const participantIds = formValues.isCooperative
+      ? this.selectedParticipants.map(p => p.userId)
+      : [];
+
+    const newTaskData: any = {
       title: formValues.title,
       description: formValues.description,
       category: formValues.category,
@@ -103,11 +106,8 @@ export class TaskListComponent implements OnInit {
       coinReward: rewards.coins,
       dueDate: new Date().toISOString().split('T')[0],
       isCooperative: formValues.isCooperative,
-      // IMPORTANTE: enviar APENAS os IDs para compatibilidade com a coluna string[] da BD
-      participants: formValues.isCooperative
-        ? this.selectedParticipants.map(p => p.userId)
-        : []
-    } as any;
+      participants: participantIds
+    };
 
     this.taskService.addTask(newTaskData).subscribe({
       next: (createdTask) => {
@@ -137,7 +137,7 @@ export class TaskListComponent implements OnInit {
     this.taskService.updateTask(updatedTask).subscribe({
       next: () => {
         task.completed = true;
-        this.gamificationService.addRewards(task.xpReward, task.coinReward);
+        (this.gamificationService as any).addRewards(task.xpReward, task.coinReward);
       },
       error: () => {
         this.errorMessage = 'Erro ao atualizar o estado da missão.';

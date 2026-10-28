@@ -1,0 +1,34 @@
+<div class="modal-backdrop" *ngIf="isOpen" (click)="onClose()"></div>
+
+<div class="modal-container" *ngIf="isOpen" role="dialog" aria-modal="true" aria-labelledby="invitation-title">
+  <div class="modal-header">
+    <h3 id="invitation-title">Convites para tarefas em conjunto</h3>
+    <button class="close-btn" (click)="onClose()" aria-label="Fechar">✕</button>
+  </div>
+
+  <div class="modal-body">
+    <p *ngIf="invitations.length === 0" class="empty-text">
+      Não tens convites pendentes.
+    </p>
+
+    <div class="invitation-card" *ngFor="let inv of invitations">
+      <div class="invitation-info">
+        <div class="invitation-header">
+          <span class="coop-badge">🤝 Em equipa</span>
+          <span class="urgency-badge" [ngClass]="inv.urgency">{{ inv.urgency | titlecase }}</span>
+        </div>
+        <h4 class="invitation-title">{{ inv.title }}</h4>
+        <p class="invitation-desc" *ngIf="inv.description">{{ inv.description }}</p>
+        <div class="invitation-rewards">
+          <span>⭐ +{{ inv.xpReward }} XP</span>
+          <span>🪙 +{{ inv.coinReward }} Moedas</span>
+        </div>
+      </div>
+
+      <div class="invitation-actions">
+        <button class="btn btn-view" (click)="onView(inv)">Ver tarefa</button>
+        <button class="btn btn-accept" (click)="onAccept(inv)">Aceitar convite</button>
+      </div>
+    </div>
+  </div>
+</div>

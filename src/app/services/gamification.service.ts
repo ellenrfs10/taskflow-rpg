@@ -1,7 +1,7 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { SupabaseService } from './supabase-service';
 import { Observable, from } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, switchMap } from 'rxjs/operators';
 
 export interface Profile {
     id: string;
@@ -51,49 +51,87 @@ export class GamificationService {
     }
 
     loadProfiles() {
-        const promise = (this.client as any)
-            .from('profile')
-            .select('*');
+        from(this.client.auth.getSession())
+            .pipe(
+                switchMap(({ data: sessionData }: any) => {
+                    let userId = sessionData?.session?.user?.id;
 
-        from(promise).subscribe({
-            next: (response: any) => {
-                const data = response.data as any[];
-                const error = response.error;
+                    if (userId) {
+                        const promise = (this.client as any).from('profile').select('*');
+                        return from(promise).pipe(
+                            map((response: any) => ({
+                                response,
+                                userId
+                            }))
+                        );
+                    }
 
-                if (error) {
-                    console.error('Erro ao carregar perfis:', error);
-                    return;
-                }
+                    return from(this.client.auth.getUser()).pipe(
+                        switchMap(({ data: userData, error: authError }: any) => {
+                            if (authError) throw authError;
+                            userId = userData?.user?.id;
 
-                if (data && data.length > 0) {
-                    const mapped: Profile[] = data.map((item: any) => ({
-                        id: item.id,
-                        name: item.name,
-                        email: item.email || '',
-                        avatar: '🧙‍♂️',
-                        role: 'Filho(a)',
-                        idAvatar: item.id_avatar,
-                        idRole: item.id_role,
-                        level: item.level || 1,
-                        currentXp: item.current_xp || 0,
-                        maxXp: item.max_xp || 100,
-                        coins: item.coins || 0,
-                        streakDays: item.streak_days || 1,
-                        active: item.active ?? true,
-                        lastActiveDate: item.last_active_date || null
-                    }));
+                            const promise = (this.client as any).from('profile').select('*');
+                            return from(promise).pipe(
+                                map((response: any) => ({
+                                    response,
+                                    userId
+                                }))
+                            );
+                        })
+                    );
+                })
+            )
+            .subscribe({
+                next: ({ response, userId }: any) => {
+                    const data = response.data as any[];
+                    const error = response.error;
 
-                    this.profiles.set(mapped);
-                    const active = mapped.find(p => p.active) || mapped[0];
-                    this.userProfile.set(active);
+                    if (error) {
+                        console.error('Erro ao carregar perfis:', error);
+                        return;
+                    }
 
-                    this.checkAndUpdateStreak();
-                } else {
+                    if (data && data.length > 0) {
+                        const mapped: Profile[] = data.map((item: any) => ({
+                            id: item.id,
+                            name: item.name,
+                            email: item.email || '',
+                            avatar: '🧙‍♂️',
+                            role: 'Filho(a)',
+                            idAvatar: item.id_avatar,
+                            idRole: item.id_role,
+                            level: item.level || 1,
+                            currentXp: item.current_xp || 0,
+                            maxXp: item.max_xp || 100,
+                            coins: item.coins || 0,
+                            streakDays: item.streak_days || 1,
+                            active: item.active ?? true,
+                            lastActiveDate: item.last_active_date || null
+                        }));
+
+                        this.profiles.set(mapped);
+
+                        if (userId) {
+                            const currentProfile = mapped.find((p) => p.id === userId);
+                            if (currentProfile) {
+                                this.userProfile.set(currentProfile);
+                                this.checkAndUpdateStreak();
+                                return;
+                            }
+                        }
+
+                        this.seedDefaultProfile();
+                        return;
+                    }
+
                     this.seedDefaultProfile();
+                },
+                error: (err: unknown) => {
+                    console.error('Erro de ligação ao Supabase:', err);
+                    setTimeout(() => this.loadProfiles(), 1000);
                 }
-            },
-            error: (err: unknown) => console.error('Erro de ligação ao Supabase:', err)
-        });
+            });
     }
 
     private async seedDefaultProfile() {
@@ -174,8 +212,9 @@ export class GamificationService {
                     lastActiveDate: todayStr
                 };
                 this.userProfile.set(updated);
-                this.profiles.update(list =>
-                    list.map(p => p.id === active.id ? updated : p)
+
+                this.profiles.update((list) =>
+                    list.map((p) => (p.id === active.id ? updated : p))
                 );
             },
             error: (err: unknown) => console.error('Erro ao atualizar streak:', err)
@@ -185,7 +224,7 @@ export class GamificationService {
     switchActiveProfile(profileId: string) {
         const currentList = this.profiles();
 
-        currentList.forEach(p => {
+        currentList.forEach((p) => {
             const isActive = p.id === profileId;
             const promise = (this.client as any)
                 .from('profile')
@@ -195,13 +234,13 @@ export class GamificationService {
             from(promise).subscribe();
         });
 
-        const updated = currentList.map(p => ({
+        const updated = currentList.map((p) => ({
             ...p,
             active: p.id === profileId
         }));
 
         this.profiles.set(updated);
-        const newActive = updated.find(p => p.id === profileId);
+        const newActive = updated.find((p) => p.id === profileId);
         if (newActive) {
             this.userProfile.set(newActive);
             this.checkAndUpdateStreak();
@@ -278,8 +317,8 @@ export class GamificationService {
                 };
                 this.userProfile.set(updatedActive);
 
-                this.profiles.update(list =>
-                    list.map(p => p.id === active.id ? updatedActive : p)
+                this.profiles.update((list) =>
+                    list.map((p) => (p.id === active.id ? updatedActive : p))
                 );
             },
             error: (err: unknown) => console.error('Erro ao atualizar recompensas:', err)
@@ -292,43 +331,31 @@ export class GamificationService {
 
         const newCoins = active.coins - amount;
 
+        const dbPayload = {
+            coins: newCoins
+        };
+
         const promise = (this.client as any)
             .from('profile')
-            .update({ coins: newCoins })
+            .update(dbPayload)
             .eq('id', active.id)
             .select();
 
         from(promise).subscribe({
             next: () => {
-                const updatedActive: Profile = { ...active, coins: newCoins };
+                const updatedActive: Profile = {
+                    ...active,
+                    coins: newCoins
+                };
                 this.userProfile.set(updatedActive);
 
-                this.profiles.update(list =>
-                    list.map(p => p.id === active.id ? updatedActive : p)
+                this.profiles.update((list) =>
+                    list.map((p) => (p.id === active.id ? updatedActive : p))
                 );
             },
             error: (err: unknown) => console.error('Erro ao gastar moedas:', err)
         });
 
         return true;
-    }
-
-    updateAvatar(avatarId: number): Observable<any> {
-        const active = this.userProfile();
-        const promise = (this.client as any)
-            .from('profile')
-            .update({ id_avatar: avatarId })
-            .eq('id', active.id)
-            .select();
-
-        return from(promise).pipe(
-            map((response: any) => {
-                if (response.error) throw response.error;
-                const updated = { ...active, idAvatar: avatarId };
-                this.userProfile.set(updated);
-                this.profiles.update(list => list.map(p => p.id === active.id ? updated : p));
-                return response.data;
-            })
-        );
     }
 }

@@ -22,5 +22,6 @@ export interface Task {
     dueDate: string;
     isCooperative: boolean;
     participants?: ParticipantContribution[] | string[];
+    acknowledgedBy?: string[];
     subtasks?: TaskSubtask[];
 }

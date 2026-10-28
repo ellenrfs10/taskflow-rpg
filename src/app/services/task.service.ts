@@ -11,7 +11,7 @@ import { GamificationService } from './gamification.service';
 export class TaskService {
     private supabaseService = inject(SupabaseService);
     private client = this.supabaseService.supabaseClient;
-    private gamificationService = inject(GamificationService);
+    private gamificationService: GamificationService = inject(GamificationService);
 
     readonly tasks = signal<Task[]>([]);
 
@@ -79,7 +79,6 @@ export class TaskService {
         return participants
             .map((p: any) => {
                 if (typeof p === 'string') {
-                    // Vem da BD como array de IDs
                     return {
                         userId: p,
                         userName: '',
@@ -87,7 +86,6 @@ export class TaskService {
                     };
                 }
                 if (p && typeof p === 'object') {
-                    // Já vem no formato do frontend
                     return {
                         userId: p.userId || p.id || p.user_id,
                         userName: p.userName || p.name || '',
@@ -125,7 +123,8 @@ export class TaskService {
             coinReward: item.coin_reward ?? item.coinReward ?? 10,
             dueDate: item.due_date || item.dueDate || '',
             isCooperative: item.is_cooperative ?? item.isCooperative ?? normalizedParticipants.length > 0,
-            participants: normalizedParticipants
+            participants: normalizedParticipants,
+            acknowledgedBy: item.acknowledged_by || []
         } as Task;
     }
 
@@ -199,8 +198,10 @@ export class TaskService {
                     throw new Error('Utilizador não autenticado');
                 }
 
-                const isCoop = taskData.isCooperative ?? taskData.is_cooperative ?? false;
-                const participantIds = isCoop ? this.extractParticipantIds(taskData.participants) : [];
+                const isCoop = taskData.isCooperative ?? false;
+                const participantIds = isCoop
+                    ? this.extractParticipantIds(taskData.participants)
+                    : [];
 
                 const payload = {
                     title: taskData.title,
@@ -208,11 +209,11 @@ export class TaskService {
                     category: taskData.category || 'Geral',
                     urgency: taskData.urgency || 'Normal',
                     completed: false,
-                    xp_reward: Number(taskData.xpReward ?? taskData.xp_reward) || 20,
-                    coin_reward: Number(taskData.coinReward ?? taskData.coin_reward) || 10,
-                    due_date: taskData.dueDate ?? taskData.due_date ?? null,
+                    xp_reward: Number(taskData.xpReward) || 20,
+                    coin_reward: Number(taskData.coinReward) || 10,
+                    due_date: taskData.dueDate || null,
                     is_cooperative: isCoop,
-                    participants: participantIds, // Enviar apenas array de string[]
+                    participants: participantIds,
                     created_at: new Date().toISOString(),
                     profile_id: user.id
                 };
@@ -248,7 +249,7 @@ export class TaskService {
             coin_reward: task.coinReward,
             due_date: task.dueDate || null,
             is_cooperative: isCoop,
-            participants: participantIds // Enviar apenas array de string[]
+            participants: participantIds
         };
 
         const promise = (this.client as any)
@@ -278,7 +279,7 @@ export class TaskService {
         this.updateTask(updatedTask).subscribe({
             next: () => {
                 if (newCompletedState) {
-                    this.gamificationService.addRewards(task.xpReward, task.coinReward);
+                    (this.gamificationService as any).addRewards(task.xpReward, task.coinReward);
                 }
             },
             error: (err: any) => console.error('Erro ao alternar tarefa:', err)

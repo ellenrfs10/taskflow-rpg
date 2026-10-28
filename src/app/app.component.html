@@ -16,9 +16,12 @@
           </a>
         </li>
         <li>
-          <a routerLink="/missions" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <a routerLink="/missions" routerLinkActive="active" ariaCurrentWhenActive="page" class="missions-link">
             <span class="nav-icon" aria-hidden="true">⚔️</span>
             <span>Missões</span>
+            @if (pendingInvitesCount() > 0) {
+              <span class="mission-dot" aria-label="Tens convites pendentes para tarefas em conjunto" title="Tens convites pendentes"></span>
+            }
           </a>
         </li>
         <li>

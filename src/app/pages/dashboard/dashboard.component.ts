@@ -27,7 +27,6 @@ export class DashboardComponent implements OnInit {
     return maxXp > 0 ? Math.min(100, Math.max(0, (currentXp / maxXp) * 100)) : 0;
   });
 
-  // Modo escuro/claro vem do serviço partilhado
   readonly isDarkMode = this.theme.isDark;
 
   ngOnInit() {
