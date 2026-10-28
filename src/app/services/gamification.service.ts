@@ -4,7 +4,7 @@ import { Observable, from } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export interface Profile {
-    id: string; // UUID em vez de number
+    id: string;
     name: string;
     email: string;
     avatar: string;
@@ -17,6 +17,7 @@ export interface Profile {
     coins: number;
     streakDays: number;
     active: boolean;
+    lastActiveDate: string | null;
 }
 
 @Injectable({
@@ -41,7 +42,8 @@ export class GamificationService {
         maxXp: 100,
         coins: 50,
         streakDays: 1,
-        active: true
+        active: true,
+        lastActiveDate: null
     });
 
     constructor() {
@@ -55,7 +57,9 @@ export class GamificationService {
 
         from(promise).subscribe({
             next: (response: any) => {
-                const { data, error } = response;
+                const data = response.data as any[];
+                const error = response.error;
+
                 if (error) {
                     console.error('Erro ao carregar perfis:', error);
                     return;
@@ -75,27 +79,32 @@ export class GamificationService {
                         maxXp: item.max_xp || 100,
                         coins: item.coins || 0,
                         streakDays: item.streak_days || 1,
-                        active: item.active ?? true
+                        active: item.active ?? true,
+                        lastActiveDate: item.last_active_date || null
                     }));
 
                     this.profiles.set(mapped);
                     const active = mapped.find(p => p.active) || mapped[0];
                     this.userProfile.set(active);
+
+                    this.checkAndUpdateStreak();
                 } else {
                     this.seedDefaultProfile();
                 }
             },
-            error: (err) => console.error('Erro de ligação ao Supabase:', err)
+            error: (err: unknown) => console.error('Erro de ligação ao Supabase:', err)
         });
     }
 
     private async seedDefaultProfile() {
-        const { data: { user } } = await this.client.auth.getUser();
+        const authResult = await this.client.auth.getUser();
+        const user = authResult.data?.user;
         if (!user) return;
 
+        const today = new Date().toISOString().split('T')[0];
         const initial = this.userProfile();
         const dbPayload = {
-            id: user.id, // ID deve corresponder exatamente ao auth.uid()
+            id: user.id,
             name: user.user_metadata?.['name'] || initial.name,
             email: user.email || initial.email,
             id_avatar: initial.idAvatar,
@@ -105,7 +114,8 @@ export class GamificationService {
             max_xp: initial.maxXp,
             coins: initial.coins,
             streak_days: initial.streakDays,
-            active: true
+            active: true,
+            last_active_date: today
         };
 
         const promise = (this.client as any)
@@ -115,7 +125,60 @@ export class GamificationService {
 
         from(promise).subscribe({
             next: () => this.loadProfiles(),
-            error: (err) => console.error('Erro ao criar perfil inicial:', err)
+            error: (err: unknown) => console.error('Erro ao criar perfil inicial:', err)
+        });
+    }
+
+    checkAndUpdateStreak() {
+        const active = this.userProfile();
+        if (!active || !active.id) return;
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const lastActive = active.lastActiveDate;
+
+        if (lastActive === todayStr) return;
+
+        let newStreak = active.streakDays;
+
+        if (!lastActive) {
+            newStreak = 1;
+        } else {
+            const lastDate = new Date(lastActive);
+            const currentDate = new Date(todayStr);
+            const diffTime = currentDate.getTime() - lastDate.getTime();
+            const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+
+            if (diffDays === 1) {
+                newStreak += 1;
+            } else if (diffDays > 1) {
+                newStreak = 1;
+            }
+        }
+
+        const dbPayload = {
+            streak_days: newStreak,
+            last_active_date: todayStr
+        };
+
+        const promise = (this.client as any)
+            .from('profile')
+            .update(dbPayload)
+            .eq('id', active.id)
+            .select();
+
+        from(promise).subscribe({
+            next: () => {
+                const updated: Profile = {
+                    ...active,
+                    streakDays: newStreak,
+                    lastActiveDate: todayStr
+                };
+                this.userProfile.set(updated);
+                this.profiles.update(list =>
+                    list.map(p => p.id === active.id ? updated : p)
+                );
+            },
+            error: (err: unknown) => console.error('Erro ao atualizar streak:', err)
         });
     }
 
@@ -141,13 +204,16 @@ export class GamificationService {
         const newActive = updated.find(p => p.id === profileId);
         if (newActive) {
             this.userProfile.set(newActive);
+            this.checkAndUpdateStreak();
         }
     }
 
     async addProfile(name: string, email: string, avatarEmoji: string, roleName: string) {
-        const { data: { user } } = await this.client.auth.getUser();
+        const authResult = await this.client.auth.getUser();
+        const user = authResult.data?.user;
         if (!user) return;
 
+        const today = new Date().toISOString().split('T')[0];
         const newProfileDb = {
             id: user.id,
             name,
@@ -159,7 +225,8 @@ export class GamificationService {
             max_xp: 100,
             coins: 30,
             streak_days: 1,
-            active: false
+            active: false,
+            last_active_date: today
         };
 
         const promise = (this.client as any)
@@ -169,7 +236,7 @@ export class GamificationService {
 
         from(promise).subscribe({
             next: () => this.loadProfiles(),
-            error: (err) => console.error('Erro ao adicionar novo perfil:', err)
+            error: (err: unknown) => console.error('Erro ao adicionar novo perfil:', err)
         });
     }
 
@@ -215,7 +282,7 @@ export class GamificationService {
                     list.map(p => p.id === active.id ? updatedActive : p)
                 );
             },
-            error: (err) => console.error('Erro ao atualizar recompensas:', err)
+            error: (err: unknown) => console.error('Erro ao atualizar recompensas:', err)
         });
     }
 
@@ -240,7 +307,7 @@ export class GamificationService {
                     list.map(p => p.id === active.id ? updatedActive : p)
                 );
             },
-            error: (err) => console.error('Erro ao gastar moedas:', err)
+            error: (err: unknown) => console.error('Erro ao gastar moedas:', err)
         });
 
         return true;
