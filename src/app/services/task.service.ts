@@ -74,7 +74,46 @@ export class TaskService {
         this.loadTasks();
     }
 
+    private normalizeParticipants(participants: any[]): any[] {
+        if (!Array.isArray(participants)) return [];
+        return participants
+            .map((p: any) => {
+                if (typeof p === 'string') {
+                    // Vem da BD como array de IDs
+                    return {
+                        userId: p,
+                        userName: '',
+                        actionsCompleted: 0
+                    };
+                }
+                if (p && typeof p === 'object') {
+                    // Já vem no formato do frontend
+                    return {
+                        userId: p.userId || p.id || p.user_id,
+                        userName: p.userName || p.name || '',
+                        actionsCompleted: p.actionsCompleted ?? p.actions_completed ?? 0
+                    };
+                }
+                return null;
+            })
+            .filter((p: any) => p && p.userId);
+    }
+
+    private extractParticipantIds(participants: any[]): string[] {
+        if (!Array.isArray(participants)) return [];
+        return participants
+            .map((p: any) => {
+                if (typeof p === 'string') return p;
+                if (p && typeof p === 'object') return p.userId || p.id || p.user_id;
+                return null;
+            })
+            .filter((id: any) => typeof id === 'string' && id.length > 0);
+    }
+
     private mapDbTaskToModel(item: any): Task {
+        const rawParticipants = item.participants || [];
+        const normalizedParticipants = this.normalizeParticipants(rawParticipants);
+
         return {
             id: item.id,
             title: item.title,
@@ -85,9 +124,9 @@ export class TaskService {
             xpReward: item.xp_reward ?? item.xpReward ?? 20,
             coinReward: item.coin_reward ?? item.coinReward ?? 10,
             dueDate: item.due_date || item.dueDate || '',
-            isCooperative: item.is_cooperative ?? item.isCooperative ?? false,
-            participants: item.participants || []
-        };
+            isCooperative: item.is_cooperative ?? item.isCooperative ?? normalizedParticipants.length > 0,
+            participants: normalizedParticipants
+        } as Task;
     }
 
     getTasks(): Observable<Task[]> {
@@ -160,6 +199,9 @@ export class TaskService {
                     throw new Error('Utilizador não autenticado');
                 }
 
+                const isCoop = taskData.isCooperative ?? taskData.is_cooperative ?? false;
+                const participantIds = isCoop ? this.extractParticipantIds(taskData.participants) : [];
+
                 const payload = {
                     title: taskData.title,
                     description: taskData.description || '',
@@ -169,8 +211,8 @@ export class TaskService {
                     xp_reward: Number(taskData.xpReward ?? taskData.xp_reward) || 20,
                     coin_reward: Number(taskData.coinReward ?? taskData.coin_reward) || 10,
                     due_date: taskData.dueDate ?? taskData.due_date ?? null,
-                    is_cooperative: taskData.isCooperative ?? taskData.is_cooperative ?? false,
-                    participants: taskData.participants || [], // <-- Garante o envio dos participantes
+                    is_cooperative: isCoop,
+                    participants: participantIds, // Enviar apenas array de string[]
                     created_at: new Date().toISOString(),
                     profile_id: user.id
                 };
@@ -193,6 +235,9 @@ export class TaskService {
     }
 
     updateTask(task: Task): Observable<Task> {
+        const isCoop = task.isCooperative ?? false;
+        const participantIds = isCoop ? this.extractParticipantIds((task as any).participants) : [];
+
         const payload = {
             title: task.title,
             description: task.description,
@@ -202,8 +247,8 @@ export class TaskService {
             xp_reward: task.xpReward,
             coin_reward: task.coinReward,
             due_date: task.dueDate || null,
-            is_cooperative: task.isCooperative,
-            participants: task.participants || [] // <-- Garante a atualização dos participantes
+            is_cooperative: isCoop,
+            participants: participantIds // Enviar apenas array de string[]
         };
 
         const promise = (this.client as any)

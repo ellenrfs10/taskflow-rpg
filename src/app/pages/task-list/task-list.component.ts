@@ -74,11 +74,14 @@ export class TaskListComponent implements OnInit {
 
   onParticipantToggle(member: any, event: any) {
     if (event.target.checked) {
-      this.selectedParticipants.push({
-        userId: member.id,
-        userName: member.name,
-        actionsCompleted: 0
-      });
+      // Evita duplicados
+      if (!this.selectedParticipants.find(p => p.userId === member.id)) {
+        this.selectedParticipants.push({
+          userId: member.id,
+          userName: member.name,
+          actionsCompleted: 0
+        });
+      }
     } else {
       this.selectedParticipants = this.selectedParticipants.filter(p => p.userId !== member.id);
     }
@@ -100,8 +103,11 @@ export class TaskListComponent implements OnInit {
       coinReward: rewards.coins,
       dueDate: new Date().toISOString().split('T')[0],
       isCooperative: formValues.isCooperative,
-      participants: formValues.isCooperative ? [...this.selectedParticipants] : []
-    };
+      // IMPORTANTE: enviar APENAS os IDs para compatibilidade com a coluna string[] da BD
+      participants: formValues.isCooperative
+        ? this.selectedParticipants.map(p => p.userId)
+        : []
+    } as any;
 
     this.taskService.addTask(newTaskData).subscribe({
       next: (createdTask) => {
@@ -115,6 +121,7 @@ export class TaskListComponent implements OnInit {
         });
         this.selectedParticipants = [];
         this.memberSearchTerm = '';
+        this.errorMessage = '';
       },
       error: () => {
         this.errorMessage = 'Erro ao criar missão. Tente novamente.';

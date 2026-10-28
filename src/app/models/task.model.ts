@@ -1,3 +1,5 @@
+import { TaskSubtask } from './task-subtask.model';
+
 export type TaskCategory = 'diaria' | 'semanal' | 'mensal';
 export type TaskUrgency = 'baixa' | 'media' | 'alta' | 'critica';
 
@@ -19,5 +21,6 @@ export interface Task {
     failed?: boolean;
     dueDate: string;
     isCooperative: boolean;
-    participants?: ParticipantContribution[];
+    participants?: ParticipantContribution[] | string[];
+    subtasks?: TaskSubtask[];
 }
