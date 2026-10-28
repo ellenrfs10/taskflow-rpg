@@ -1,28 +1,63 @@
-<header class="user-header">
-    <div class="logo">
-        <h2>🏰 TaskFlow RPG - Gestor Doméstico</h2>
-    </div>
+<header class="app-header">
+  <a class="brand" [routerLink]="currentUser() ? '/dashboard' : '/auth'" aria-label="TaskFlow RPG – página inicial">
+    <span class="brand-icon" aria-hidden="true">🏰</span>
+    <span class="brand-name">TaskFlow RPG</span>
+    <small class="brand-tagline">Gestor Doméstico</small>
+  </a>
 
-    <!-- Links de Navegação -->
-    <nav class="nav-links">
-        <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
-        <a routerLink="/missions" routerLinkActive="active">Missões</a>
-        <a routerLink="/shop" routerLinkActive="active">Loja & Recompensas</a>
-        @if (currentUser()) {
-            <a routerLink="/profile/edit" routerLinkActive="active">⚙️ Perfil</a>
-        }
+  <!-- Links de navegação (só com sessão iniciada) -->
+  @if (currentUser()) {
+    <nav class="main-nav" aria-label="Navegação principal">
+      <ul>
+        <li>
+          <a routerLink="/dashboard" routerLinkActive="active" ariaCurrentWhenActive="page">
+            <span class="nav-icon" aria-hidden="true">🏠</span>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/missions" routerLinkActive="active" ariaCurrentWhenActive="page">
+            <span class="nav-icon" aria-hidden="true">⚔️</span>
+            <span>Missões</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/shop" routerLinkActive="active" ariaCurrentWhenActive="page">
+            <span class="nav-icon" aria-hidden="true">🛍️</span>
+            <span>Loja</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/profile/edit" routerLinkActive="active" ariaCurrentWhenActive="page">
+            <span class="nav-icon" aria-hidden="true">🛡️</span>
+            <span>Perfil</span>
+          </a>
+        </li>
+      </ul>
     </nav>
+  }
 
-    <!-- Ações do Utilizador (Botão de Sair) -->
-    <div class="header-actions">
-        @if (currentUser()) {
-            <button (click)="logout()" class="btn btn-logout">
-                🚪 Sair
-            </button>
-        } @else {
-            <a routerLink="/auth" class="btn btn-login">Entrar</a>
-        }
-    </div>
+  <!-- Ações: tema e sessão -->
+  <menu class="header-actions">
+    <li>
+      <button type="button" class="btn btn-theme" (click)="theme.toggle()"
+              [attr.aria-pressed]="theme.isDark()"
+              aria-label="Alternar entre modo escuro e modo claro">
+        <span aria-hidden="true">{{ theme.isDark() ? '☀️' : '🌙' }}</span>
+        <span class="btn-label">{{ theme.isDark() ? 'Modo Claro' : 'Modo Escuro' }}</span>
+      </button>
+    </li>
+    <li>
+      @if (currentUser()) {
+        <button type="button" class="btn btn-logout" (click)="logout()" aria-label="Terminar sessão">
+          <span aria-hidden="true">🚪</span>
+          <span class="btn-label">Sair</span>
+        </button>
+      } @else {
+        <a routerLink="/auth" class="btn btn-login">Entrar</a>
+      }
+    </li>
+  </menu>
 </header>
 
 <main class="app-container">

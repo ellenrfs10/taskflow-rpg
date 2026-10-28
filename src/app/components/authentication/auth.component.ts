@@ -1,13 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
+import { ThemeService } from '../../services/theme.service';
 import { Router } from '@angular/router';
 
 @Component({
     selector: 'app-auth',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule],
+    imports: [ReactiveFormsModule],
     templateUrl: './auth.component.html',
     styleUrls: ['./auth.component.css']
 })
@@ -15,13 +15,14 @@ export class AuthComponent {
     private authService = inject(AuthService);
     private fb = inject(FormBuilder);
     private router = inject(Router);
+    private theme = inject(ThemeService);
 
     isLoginMode = signal<boolean>(true);
     errorMessage = signal<string | null>(null);
     loading = signal<boolean>(false);
 
-    // Controlo para o Dark Mode / Light Mode
-    isDarkMode = true;
+    // Modo escuro/claro vem do serviço partilhado
+    readonly isDarkMode = this.theme.isDark;
 
     authForm: FormGroup = this.fb.group({
         email: ['', [Validators.required, Validators.email]],
@@ -34,7 +35,7 @@ export class AuthComponent {
     }
 
     toggleTheme() {
-        this.isDarkMode = !this.isDarkMode;
+        this.theme.toggle();
     }
 
     onSubmit() {
@@ -45,11 +46,10 @@ export class AuthComponent {
         this.errorMessage.set(null);
 
         if (this.isLoginMode()) {
-            // Login
             this.authService.signIn(email, password).subscribe({
                 next: () => {
                     this.loading.set(false);
-                    this.router.navigate(['/dashboard']); // Redireciona após login
+                    this.router.navigate(['/dashboard']);
                 },
                 error: (err) => {
                     this.loading.set(false);
@@ -57,7 +57,6 @@ export class AuthComponent {
                 }
             });
         } else {
-            // Registo
             this.authService.signUp(email, password).subscribe({
                 next: () => {
                     this.loading.set(false);

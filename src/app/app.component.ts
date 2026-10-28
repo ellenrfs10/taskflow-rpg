@@ -1,18 +1,23 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from './services/auth.service';
+import { ThemeService } from './services/theme.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  styleUrl: './app.component.css',
+  host: {
+    '[class.dark-theme]': 'theme.isDark()',
+    '[class.logged-in]': '!!currentUser()'
+  }
 })
 export class AppComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
+  readonly theme = inject(ThemeService);
 
   // Expõe o signal do utilizador atual para o HTML
   readonly currentUser = this.authService.currentUser;

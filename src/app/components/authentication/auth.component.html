@@ -1,79 +1,59 @@
-<main class="auth-wrapper" [class.dark-theme]="isDarkMode">
-  <!-- Botão de Alternância de Tema (Dark/Light Mode) -->
-  <aside class="theme-toggle-container">
-    <button type="button" class="theme-toggle-btn" (click)="toggleTheme()" aria-label="Alternar modo escuro ou claro">
-      <span *ngIf="isDarkMode">☀️ Modo Claro</span>
-      <span *ngIf="!isDarkMode">🌙 Modo Escuro</span>
-    </button>
-  </aside>
+<main class="auth-page" [class.dark-theme]="isDarkMode()">
+  
+  <article class="auth-card" aria-labelledby="auth-title">
+    <header class="auth-header">
+      <p class="auth-badge">⚔️ TaskFlow RPG</p>
+      <h1 id="auth-title">
+        {{ isLoginMode() ? 'Bem-vindo de volta, Aventureiro!' : 'Registo de Novo Herói' }}
+      </h1>
+      <p class="auth-subtitle">
+        {{ isLoginMode()
+          ? 'Introduz as tuas credenciais para continuar a tua jornada.'
+          : 'Cria a tua conta e começa a ganhar recompensas.' }}
+      </p>
+    </header>
 
-  <section class="auth-container">
-    <div class="card auth-card">
-      
-      <!-- Cabeçalho com identidade visual RPG -->
-      <header class="auth-header">
-        <div class="auth-logo-badge">⚔️ TaskFlow RPG</div>
-        <h2>{{ isLoginMode() ? 'Bem-vindo de volta, Aventureiro!' : 'Registo de Novo Herói' }}</h2>
-        <p class="auth-subtitle">
-          {{ isLoginMode() ? 'Introduz as tuas credenciais para continuar a tua jornada.' : 'Cria a tua conta e começa a ganhar recompensas.' }}
-        </p>
-      </header>
+    <form class="auth-form" [formGroup]="authForm" (ngSubmit)="onSubmit()" novalidate>
+      <label class="field">
+        <span class="field-label">E-mail</span>
+        <span class="field-control">
+          <span class="field-icon" aria-hidden="true">✉️</span>
+          <input id="email" type="email" formControlName="email"
+                 placeholder="aventureiro@email.com" autocomplete="email" />
+        </span>
+      </label>
 
-      <!-- Formulário -->
-      <form [formGroup]="authForm" (ngSubmit)="onSubmit()" class="auth-form">
-        
-        <div class="form-group">
-          <label for="email">E-mail</label>
-          <div class="input-wrapper">
-            <span class="input-icon" aria-hidden="true">✉️</span>
-            <input 
-              id="email" 
-              type="email" 
-              formControlName="email" 
-              placeholder="aventureiro@email.com" 
-              autocomplete="email"
-              required 
-            />
-          </div>
-        </div>
+      <label class="field">
+        <span class="field-label">Palavra-passe</span>
+        <span class="field-control">
+          <span class="field-icon" aria-hidden="true">🔒</span>
+          <input id="password" type="password" formControlName="password"
+                 placeholder="Mínimo de 6 caracteres"
+                 [attr.autocomplete]="isLoginMode() ? 'current-password' : 'new-password'" />
+        </span>
+      </label>
 
-        <div class="form-group">
-          <label for="password">Palavra-passe</label>
-          <div class="input-wrapper">
-            <span class="input-icon" aria-hidden="true">🔒</span>
-            <input 
-              id="password" 
-              type="password" 
-              formControlName="password" 
-              placeholder="Mínimo de 6 caracteres" 
-              autocomplete="current-password"
-              required 
-            />
-          </div>
-        </div>
+      @if (errorMessage()) {
+        <p class="error-message" role="alert">⚠️ {{ errorMessage() }}</p>
+      }
 
-        <!-- Mensagem de Erro Semântica -->
-        <aside *ngIf="errorMessage()" class="error-banner" role="alert">
-          <p>⚠️ {{ errorMessage() }}</p>
-        </aside>
+      <button type="submit" class="btn-submit" [disabled]="authForm.invalid || loading()">
+        @if (loading()) {
+          <span class="spinner" aria-hidden="true"></span>
+          A processar...
+        } @else {
+          {{ isLoginMode() ? 'Entrar na Aventura 🚀' : 'Criar Conta e Jogar ✨' }}
+        }
+      </button>
+    </form>
 
-        <!-- Botão de Ação -->
-        <button type="submit" class="btn btn-primary" [disabled]="authForm.invalid || loading()">
-          <span *ngIf="loading()" class="spinner" aria-hidden="true"></span>
-          {{ loading() ? 'A processar...' : (isLoginMode() ? 'Entrar na Aventura 🚀' : 'Criar Conta e Jogar ✨') }}
+    <footer class="auth-footer">
+      <p>
+        {{ isLoginMode() ? 'Ainda não tens uma conta?' : 'Já tens uma conta?' }}
+        <button type="button" class="switch-link" (click)="toggleMode()">
+          {{ isLoginMode() ? 'Regista-te aqui' : 'Faz login' }}
         </button>
-      </form>
-
-      <!-- Rodapé do Card / Alternância de Modo -->
-      <footer class="auth-footer">
-        <p class="switch-text">
-          {{ isLoginMode() ? 'Ainda não tens uma conta?' : 'Já tens uma conta?' }}
-          <button type="button" class="switch-link" (click)="toggleMode()">
-            {{ isLoginMode() ? 'Regista-te aqui' : 'Faz login' }}
-          </button>
-        </p>
-      </footer>
-
-    </div>
-  </section>
+      </p>
+    </footer>
+  </article>
 </main>

@@ -1,114 +1,89 @@
-<main class="dashboard-container" [class.dark-theme]="isDarkMode">
-  <!-- Cabeçalho do Dashboard com Alternância de Tema -->
-  <header class="dashboard-header">
-    <div class="header-welcome">
+<main class="dashboard-page" [class.dark-theme]="isDarkMode()">
+  <header class="page-header">
+    <hgroup>
       <h1>Painel do Herói</h1>
-      <p>Gerencia as tuas missões e acompanha a tua evolução.</p>
-    </div>
-    <button type="button" class="theme-toggle-btn" (click)="toggleTheme()" aria-label="Alternar modo escuro ou claro">
-      <span *ngIf="isDarkMode">☀️ Modo Claro</span>
-      <span *ngIf="!isDarkMode">🌙 Modo Escuro</span>
-    </button>
+      <p>Gere as tuas missões e acompanha a tua evolução.</p>
+    </hgroup>
+
   </header>
 
-  <!-- Grelha Superior: Perfil e Resumo -->
-  <div class="dashboard-grid">
-    <!-- Cartão do Perfil do Jogador -->
-    <section class="card profile-card" *ngIf="userProfile() as user" aria-labelledby="profile-heading">
-      <header class="sr-only">
-        <h2 id="profile-heading">Perfil do Jogador</h2>
-      </header>
+  <!-- Perfil e resumo -->
+  <section class="grid" aria-label="Resumo do jogador">
+    @if (userProfile(); as user) {
+      <article class="card profile-card" aria-labelledby="profile-heading">
+        <header class="profile-head">
+          <p class="avatar" aria-hidden="true">{{ user.avatar }}</p>
+          <p class="level-badge"><small>Nível</small><strong>{{ user.level }}</strong></p>
+        </header>
 
-      <div class="avatar-container">
-        <span class="avatar-icon" aria-hidden="true">{{ user.avatar }}</span>
-        <span class="level-badge">Nível {{ user.level }}</span>
-      </div>
-      
-      <div class="user-info">
-        <h2>{{ user.name }}</h2>
+        <h2 id="profile-heading">{{ user.name }}</h2>
         <p class="streak">🔥 Sequência: {{ user.streakDays }} dias seguidos!</p>
-        
-        <!-- Barra de XP -->
-        <div class="xp-section" aria-label="Progresso de Experiência">
-          <div class="xp-labels">
-            <span>XP: {{ user.currentXp }} / {{ user.maxXp }}</span>
-            <span>{{ (user.currentXp / user.maxXp) * 100 | number:'1.0-0' }}%</span>
-          </div>
-          <div class="progress-bar-bg">
-            <div 
-              class="progress-bar-fill" 
-              [style.width.%]="(user.currentXp / user.maxXp) * 100">
-            </div>
-          </div>
-        </div>
 
-        <!-- Carteira de Moedas -->
-        <div class="coins-badge">
-          🪙 <span>{{ user.coins }} Moedas de Ouro</span>
-        </div>
-      </div>
-    </section>
+        <p class="xp-labels">
+          <span>XP: {{ user.currentXp }} / {{ user.maxXp }}</span>
+          <span>{{ xpPercent() | number:'1.0-0' }}%</span>
+        </p>
+        <progress [value]="xpPercent()" max="100" aria-label="Progresso de experiência"></progress>
 
-    <!-- Resumo Rápido das Missões -->
-    <section class="card stats-card" aria-labelledby="stats-heading">
-      <header>
-        <h3 id="stats-heading">📊 Resumo de Missões</h3>
-      </header>
-      
-      <div class="stats-overview">
-        <div class="stat-item">
-          <span class="stat-number">{{ pendingTasks().length }}</span>
+        <p class="coins-badge">🪙 {{ user.coins }} Moedas de Ouro</p>
+      </article>
+    }
+
+    <article class="card stats-card" aria-labelledby="stats-heading">
+      <h2 id="stats-heading">📊 Resumo de Missões</h2>
+
+      <ul class="stats">
+        <li>
+          <strong class="stat-number">{{ pendingTasks().length }}</strong>
           <span class="stat-label">Pendentes</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-number">{{ completedTasks().length }}</span>
+        </li>
+        <li>
+          <strong class="stat-number">{{ completedTasks().length }}</strong>
           <span class="stat-label">Concluídas</span>
-        </div>
-      </div>
+        </li>
+      </ul>
 
-      <nav class="actions" aria-label="Ações rápidas do dashboard">
+      <nav class="actions" aria-label="Ações rápidas">
         <a routerLink="/missions" class="btn btn-primary">Ir para Quadro de Missões ⚔️</a>
         <a routerLink="/shop" class="btn btn-secondary">Visitar a Loja 🛍️</a>
       </nav>
-    </section>
-  </div>
+    </article>
+  </section>
 
-  <!-- Grelha Inferior: Listas Detalhadas de Tarefas -->
-  <div class="dashboard-task-lists-grid">
-    <!-- Lista de Tarefas Pendentes -->
-    <section class="card task-list-card" aria-labelledby="pending-list-heading">
-      <header>
-        <h3 id="pending-list-heading">⏳ Missões Pendentes</h3>
-      </header>
+  <!-- Listas de missões -->
+  <section class="grid" aria-label="Listas de missões">
+    <article class="card" aria-labelledby="pending-heading">
+      <h2 id="pending-heading">⏳ Missões Pendentes</h2>
 
-      <div *ngIf="pendingTasks().length === 0" class="empty-state">
-        <p>Não há missões pendentes. Bom trabalho!</p>
-      </div>
+      @if (pendingTasks().length === 0) {
+        <p class="empty-state">Não há missões pendentes. Bom trabalho!</p>
+      } @else {
+        <ul class="task-list">
+          @for (task of pendingTasks(); track task.id) {
+            <li class="task-item">
+              <span class="task-title">{{ task.title }}</span>
+              <span class="urgency-badge" [ngClass]="task.urgency">{{ task.urgency | titlecase }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </article>
 
-      <ul class="task-summary-list" role="list" *ngIf="pendingTasks().length > 0">
-        <li *ngFor="let task of pendingTasks()" class="task-summary-item">
-          <span class="task-title">{{ task.title }}</span>
-          <span class="urgency-badge" [ngClass]="task.urgency">{{ task.urgency | titlecase }}</span>
-        </li>
-      </ul>
-    </section>
+    <article class="card" aria-labelledby="completed-heading">
+      <h2 id="completed-heading">✅ Missões Concluídas</h2>
 
-    <!-- Lista de Tarefas Concluídas -->
-    <section class="card task-list-card" aria-labelledby="completed-list-heading">
-      <header>
-        <h3 id="completed-list-heading">✅ Missões Concluídas</h3>
-      </header>
-
-      <div *ngIf="completedTasks().length === 0" class="empty-state">
-        <p>Ainda nenhuma missão concluída.</p>
-      </div>
-
-      <ul class="task-summary-list" role="list" *ngIf="completedTasks().length > 0">
-        <li *ngFor="let task of completedTasks()" class="task-summary-item completed">
-          <span class="task-title">{{ task.title }}</span>
-          <span class="reward-badge">+{{ task.xpReward }} XP</span>
-        </li>
-      </ul>
-    </section>
-  </div>
+      @if (completedTasks().length === 0) {
+        <p class="empty-state">Ainda nenhuma missão concluída.</p>
+      } @else {
+        <ul class="task-list">
+          @for (task of completedTasks(); track task.id) {
+            <li class="task-item completed">
+              <span class="task-title">{{ task.title }}</span>
+              <span class="reward-badge">+{{ task.xpReward }} XP</span>
+            </li>
+          }
+        </ul>
+      }
+    </article>
+  </section>
 </main>

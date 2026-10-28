@@ -1,59 +1,160 @@
-.user-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 2rem;
-    background-color: #1f2937;
-    color: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+/* ---------- Tema claro (padrão) ---------- */
+:host {
+  --page-bg: radial-gradient(circle at 85% 0%, #e2d6ff 0%, transparent 55%), #f5f1ff;
+  --page-bg-size: auto;
+  --bar-bg: rgba(255, 255, 255, .9);
+  --bar-border: #ddd0fb;
+  --bar-shadow: 0 4px 18px rgba(109, 40, 217, .10);
+  --text: #1b1235;
+  --muted: #6b5f8f;
+  --surface: #f3eeff;
+  --accent: #6d28d9;
+  --btn-from: #7c3aed;
+  --btn-to: #a855f7;
+  --btn-glow: 0 6px 16px rgba(124, 58, 237, .3);
+  --brand-glow: none;
+  --bad: #b91c1c;
+  --bad-bg: #fee2e2;
+  --bad-border: #fecaca;
+
+  /* usados também pelas páginas: min-height: calc(100dvh - var(--header-h) - var(--bottom-h)) */
+  --header-h: 4rem;
+  --bottom-h: 0px;
+
+  display: block;
+  min-height: 100dvh;
+  color: var(--text);
+  background: var(--page-bg);
+  background-size: var(--page-bg-size);
+  transition: background-color .3s, color .3s;
 }
 
-.logo h2 {
-    margin: 0;
-    font-size: 1.25rem;
+/* ---------- Tema escuro: roxo neon + grelha ---------- */
+:host(.dark-theme) {
+  --page-bg:
+    linear-gradient(rgba(168, 85, 247, .08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(168, 85, 247, .08) 1px, transparent 1px),
+    radial-gradient(ellipse at 50% 0%, #34106e 0%, transparent 65%),
+    #07040f;
+  --page-bg-size: 44px 44px, 44px 44px, auto, auto;
+  --bar-bg: rgba(10, 5, 24, .88);
+  --bar-border: #4a2a99;
+  --bar-shadow: 0 0 24px rgba(168, 85, 247, .25);
+  --text: #f6f1ff;
+  --muted: #a99ccf;
+  --surface: #150d33;
+  --accent: #c9a8ff;
+  --btn-from: #8b5cf6;
+  --btn-to: #d946ef;
+  --btn-glow: 0 0 18px rgba(192, 82, 255, .5);
+  --brand-glow: 0 0 14px rgba(168, 85, 247, .8);
+  --bad: #fca5a5;
+  --bad-bg: rgba(239, 68, 68, .14);
+  --bad-border: rgba(239, 68, 68, .45);
 }
 
-.nav-links {
-    display: flex;
-    gap: 1.5rem;
+/* ---------- Cabeçalho ---------- */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: var(--header-h);
+  padding: 0 clamp(1rem, 3vw, 2rem);
+  background: var(--bar-bg);
+  border-bottom: 1px solid var(--bar-border);
+  box-shadow: var(--bar-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: background .3s, border-color .3s;
 }
 
-.nav-links a {
-    color: #d1d5db;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s;
+.brand { display: flex; align-items: baseline; gap: .5rem; color: var(--text); text-decoration: none; white-space: nowrap; }
+.brand-icon { font-size: 1.4rem; }
+.brand-name { font-family: Georgia, 'Times New Roman', serif; font-size: 1.25rem; font-weight: 700; color: var(--accent); text-shadow: var(--brand-glow); }
+.brand-tagline { font-size: .75rem; color: var(--muted); }
+
+/* ---------- Navegação ---------- */
+.main-nav { margin-inline: auto; }
+.main-nav ul { display: flex; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+.main-nav a {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .5rem .9rem;
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .2s, color .2s, box-shadow .2s;
+}
+.main-nav a:hover { background: var(--surface); color: var(--text); }
+.main-nav a.active { background: linear-gradient(135deg, var(--btn-from), var(--btn-to)); color: #fff; box-shadow: var(--btn-glow); }
+
+/* ---------- Ações ---------- */
+.header-actions { display: flex; align-items: center; gap: .5rem; margin: 0 0 0 auto; padding: 0; list-style: none; }
+.main-nav + .header-actions { margin-left: 0; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  padding: .5rem .9rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font: inherit;
+  font-size: .85rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .15s, filter .2s, background .2s;
+}
+.btn:hover { transform: scale(1.04); }
+.btn-theme { background: var(--surface); border-color: var(--bar-border); color: var(--text); }
+.btn-logout { background: var(--bad-bg); border-color: var(--bad-border); color: var(--bad); }
+.btn-login { background: linear-gradient(135deg, var(--btn-from), var(--btn-to)); color: #fff; box-shadow: var(--btn-glow); }
+.btn-login:hover { filter: brightness(1.1); }
+
+:focus-visible { outline: 2px solid var(--btn-from); outline-offset: 2px; }
+
+.app-container { display: block; padding-bottom: var(--bottom-h); }
+
+/* ---------- Ecrãs médios: esconde o subtítulo ---------- */
+@media (max-width: 899px) {
+  .brand-tagline { display: none; }
 }
 
-.nav-links a:hover, .nav-links a.active {
-    color: #fbbf24; /* Tom dourado a combinar com o RPG */
+/* ---------- Telemóvel: navegação vira barra fixa em baixo ---------- */
+@media (max-width: 767px) {
+  :host(.logged-in) { --bottom-h: 4.25rem; }
+  :host { --header-h: 3.5rem; }
+
+  .btn-label { display: none; }
+  .btn { padding: .5rem .7rem; font-size: 1rem; }
+
+  .main-nav {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 50;
+    height: var(--bottom-h);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    background: var(--bar-bg);
+    border-top: 1px solid var(--bar-border);
+    box-shadow: var(--bar-shadow);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .main-nav ul { height: 100%; justify-content: space-around; gap: 0; }
+  .main-nav li { flex: 1; }
+  .main-nav a { flex-direction: column; justify-content: center; gap: .1rem; height: 100%; padding: .25rem; border-radius: 0; font-size: .7rem; }
+  .main-nav a.active { background: transparent; color: var(--accent); box-shadow: none; }
+  .main-nav a.active .nav-icon { filter: drop-shadow(0 0 6px var(--btn-from)); transform: scale(1.2); }
+  .nav-icon { font-size: 1.3rem; transition: transform .2s; }
 }
 
-.header-actions {
-    display: flex;
-    align-items: center;
-}
-
-.btn-logout {
-    background-color: #ef4444;
-    color: white;
-    border: none;
-    padding: 6px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background 0.2s;
-}
-
-.btn-logout:hover {
-    background-color: #dc2626;
-}
-
-.btn-login {
-    background-color: #6366f1;
-    color: white;
-    text-decoration: none;
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-weight: bold;
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
 }
