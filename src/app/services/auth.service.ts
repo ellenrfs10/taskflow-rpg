@@ -117,4 +117,6 @@ export class AuthService {
         this.currentUser.set(null);
         await this.router.navigate(['/auth'], { replaceUrl: true });
     }
+
+    
 }

@@ -129,7 +129,6 @@ export class TaskService {
         } as Task;
     }
 
-
     getTasks(): Observable<Task[]> {
         const promise = (this.client as any)
             .from('tasks')
@@ -239,8 +238,9 @@ export class TaskService {
     }
 
     updateTask(task: Task): Observable<Task> {
+        const taskAny = task as any;
         const isCoop = task.isCooperative ?? false;
-        const participantIds = isCoop ? this.extractParticipantIds((task as any).participants) : [];
+        const participantIds = isCoop ? this.extractParticipantIds(taskAny.participants) : [];
 
         const payload = {
             title: task.title,
@@ -250,7 +250,7 @@ export class TaskService {
             completed: task.completed,
             xp_reward: task.xpReward,
             coin_reward: task.coinReward,
-            due_date: task.dueDate || null,
+            due_date: taskAny.dueDate || taskAny.due_date || null,
             is_cooperative: isCoop,
             participants: participantIds
         };
@@ -258,7 +258,7 @@ export class TaskService {
         const promise = (this.client as any)
             .from('tasks')
             .update(payload)
-            .eq('id', task.id)
+            .eq('id', taskAny.id)
             .select()
             .single();
 
@@ -266,23 +266,57 @@ export class TaskService {
             map((response: any) => {
                 if (response.error) throw response.error;
                 const updated = this.mapDbTaskToModel(response.data);
-                this.tasks.update(list => list.map(t => t.id === updated.id ? updated : t));
+                this.tasks.update(list => list.map(t => (t as any).id === (updated as any).id ? updated : t));
+                return updated;
+            })
+        );
+    }
+
+    acknowledgeInvitation(task: Task, userId: string): Observable<Task> {
+        const taskAny = task as any;
+        const currentAcknowledged = taskAny.acknowledgedBy || taskAny.acknowledged_by || [];
+        const acknowledgedArray = Array.isArray(currentAcknowledged) ? currentAcknowledged : [];
+
+        if (acknowledgedArray.includes(userId)) {
+            return from(Promise.resolve(this.mapDbTaskToModel(taskAny)));
+        }
+
+        const updatedAcknowledged = [...acknowledgedArray, userId];
+
+        const payload = {
+            acknowledged_by: updatedAcknowledged
+        };
+
+        const promise = (this.client as any)
+            .from('tasks')
+            .update(payload)
+            .eq('id', taskAny.id)
+            .select()
+            .single();
+
+        return from(promise).pipe(
+            map((response: any) => {
+                if (response.error) throw response.error;
+                const updated = this.mapDbTaskToModel(response.data);
+                this.tasks.update((list: Task[]) =>
+                    list.map((t: Task) => ((t as any).id === (updated as any).id ? updated : t))
+                );
                 return updated;
             })
         );
     }
 
     toggleTask(id: number) {
-        const task = this.tasks().find(t => t.id === id);
+        const task = this.tasks().find(t => (t as any).id === id);
         if (!task) return;
 
-        const newCompletedState = !task.completed;
-        const updatedTask = { ...task, completed: newCompletedState };
+        const newCompletedState = !(task as any).completed;
+        const updatedTask = { ...task, completed: newCompletedState } as Task;
 
         this.updateTask(updatedTask).subscribe({
             next: () => {
                 if (newCompletedState) {
-                    (this.gamificationService as any).addRewards(task.xpReward, task.coinReward);
+                    (this.gamificationService as any).addRewards((task as any).xpReward, (task as any).coinReward);
                 }
             },
             error: (err: any) => console.error('Erro ao alternar tarefa:', err)
@@ -298,7 +332,7 @@ export class TaskService {
         return from(promise).pipe(
             map((response: any) => {
                 if (response.error) throw response.error;
-                this.tasks.update(list => list.filter(t => t.id !== Number(id)));
+                this.tasks.update(list => list.filter(t => (t as any).id !== Number(id)));
                 return response.data;
             })
         );

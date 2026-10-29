@@ -13,7 +13,7 @@
     </div>
 
     @if (timeLeft) {
-      <div class="timer-badge" [class.critical]="isCritical" [class.expired]="isExpired">
+      <div class="timer-badge" [class.warning]="isWarning" [class.critical]="isCritical" [class.expired]="isExpired">
         <span aria-hidden="true">⏰</span>
         <span>{{ timeLeft }}</span>
       </div>

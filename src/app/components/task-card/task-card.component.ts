@@ -19,6 +19,7 @@ export class TaskCardComponent implements OnInit, OnDestroy {
   @Output() delete = new EventEmitter<number>();
 
   timeLeft: string = '';
+  isWarning: boolean = false;
   isCritical: boolean = false;
   isExpired: boolean = false;
 
@@ -26,7 +27,6 @@ export class TaskCardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.updateTimer();
-    // Atualiza o temporizador a cada minuto
     this.intervalId = setInterval(() => {
       this.updateTimer();
     }, 60000);
@@ -40,20 +40,24 @@ export class TaskCardComponent implements OnInit, OnDestroy {
   }
 
   private updateTimer(): void {
-    if (!this.task?.dueDate) {
+    const taskAny = this.task as any;
+    const dueDateStr = taskAny?.dueDate || taskAny?.due_date;
+
+    if (!dueDateStr) {
       this.timeLeft = '';
+      this.isWarning = false;
       this.isCritical = false;
       this.isExpired = false;
       return;
     }
 
     const now = new Date();
-    // Considera o fim do dia como vencimento
-    const dueDate = new Date(`${this.task.dueDate}T23:59:59`);
-    const diffMs = dueDate.getTime() - now.getTime();
+    const deadline = new Date(`${dueDateStr}T23:59:59`);
+    const diffMs = deadline.getTime() - now.getTime();
 
     if (diffMs <= 0) {
       this.isExpired = true;
+      this.isWarning = false;
       this.isCritical = true;
       this.timeLeft = 'Expirada';
       return;
@@ -61,32 +65,47 @@ export class TaskCardComponent implements OnInit, OnDestroy {
 
     this.isExpired = false;
 
-    const diffHoursTotal = diffMs / (1000 * 60 * 60);
-    const diffDays = Math.floor(diffHoursTotal / 24);
-    const hoursLeft = Math.floor(diffHoursTotal % 24);
-    const minutesLeft = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const totalMinutes = Math.floor(diffMs / (1000 * 60));
+    const totalHours = Math.floor(totalMinutes / 60);
+    const totalDays = Math.floor(totalHours / 24);
 
-    // Fica vermelho quando faltar menos de 2 horas
-    this.isCritical = diffHoursTotal <= 2;
+    const hoursLeft = totalHours % 24;
+    const minutesLeft = totalMinutes % 60;
 
-    if (diffDays > 0) {
-      this.timeLeft = `${diffDays}d ${hoursLeft}h restantes`;
+    // Lógica de cores baseada no tempo restante
+    if (totalHours < 5) {
+      // Menos de 5 horas -> Vermelho
+      this.isCritical = true;
+      this.isWarning = false;
+    } else if (totalDays < 1 && totalHours >= 5) {
+      // Menos de 24 horas mas mais de 5 -> Amarelo
+      this.isCritical = false;
+      this.isWarning = true;
+    } else {
+      // Mais de 24 horas -> Normal
+      this.isCritical = false;
+      this.isWarning = false;
+    }
+
+    // Formatação do tempo restante
+    if (totalDays >= 1) {
+      this.timeLeft = `Faltam ${totalDays} dia(s) ${hoursLeft}h ${minutesLeft}m`;
       return;
     }
 
-    if (hoursLeft > 0) {
-      this.timeLeft = `${hoursLeft}h ${minutesLeft}m restantes`;
+    if (totalHours >= 1) {
+      this.timeLeft = `Faltam ${totalHours}h ${minutesLeft}m`;
       return;
     }
 
-    this.timeLeft = `${minutesLeft}m restantes`;
+    this.timeLeft = `Faltam ${minutesLeft}m`;
   }
 
   get inviterName(): string {
     const profiles = this.gamificationService.profiles();
-    if (!this.task?.profile_id) return 'Alguém';
+    if (!(this.task as any)?.profile_id) return 'Alguém';
 
-    const inviter = profiles.find((p: any) => p.id === this.task.profile_id);
+    const inviter = profiles.find((p: any) => p.id === (this.task as any).profile_id);
     return inviter?.name || 'Alguém';
   }
 

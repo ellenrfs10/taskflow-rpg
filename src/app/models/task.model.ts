@@ -17,10 +17,12 @@ export interface Task {
     coinReward: number;
     completed: boolean;
     failed?: boolean;
-    dueDate: string;
+    dueDate?: string;
+    due_date?: string;
     isCooperative: boolean;
     participants?: ParticipantContribution[] | string[];
     acknowledgedBy?: string[];
-    subtasks?: any[];
+    acknowledged_by?: string[];
     profile_id?: string;
+    subtasks?: any[];
 }

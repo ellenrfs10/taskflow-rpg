@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { TaskService } from '../../services/task.service';
 import { GamificationService } from '../../services/gamification.service';
-import { Task, TaskUrgency, TaskCategory, ParticipantContribution } from '../../models/task.model';
+import { Task, TaskUrgency, ParticipantContribution } from '../../models/task.model';
 import { TaskCardComponent } from '../../components/task-card/task-card.component';
 
 @Component({
@@ -21,6 +21,7 @@ export class TaskListComponent implements OnInit {
   // Usa diretamente o signal do service
   readonly tasks = computed(() => this.taskService.tasks());
   readonly isLoading = signal<boolean>(true);
+  readonly today = new Date().toISOString().split('T')[0];
 
   errorMessage = '';
 
@@ -33,13 +34,12 @@ export class TaskListComponent implements OnInit {
   taskForm: FormGroup = this.fb.group({
     title: ['', [Validators.required, Validators.minLength(3)]],
     description: [''],
-    category: ['diaria' as TaskCategory, Validators.required],
     urgency: ['media' as TaskUrgency, Validators.required],
+    dueDate: [''],
     isCooperative: [false]
   });
 
   urgencyLevels: TaskUrgency[] = ['baixa', 'media', 'alta', 'critica'];
-  categories: TaskCategory[] = ['diaria', 'semanal', 'mensal'];
 
   constructor() {
     // Assim que as tarefas forem carregadas/atualizadas, tira o "A carregar"
@@ -93,7 +93,6 @@ export class TaskListComponent implements OnInit {
 
     (this.taskService as any).acknowledgeInvitation(task, userId).subscribe({
       next: () => {
-        // O signal já vai atualizar, mas forçamos feedback imediato
         this.errorMessage = '';
       },
       error: (err: any) => {
@@ -174,12 +173,12 @@ export class TaskListComponent implements OnInit {
     const newTaskData: any = {
       title: formValues.title,
       description: formValues.description || '',
-      category: formValues.category,
+      category: 'diaria',
       urgency: formValues.urgency,
       completed: false,
       xpReward: rewards.xp,
       coinReward: rewards.coins,
-      dueDate: new Date().toISOString().split('T')[0],
+      dueDate: formValues.dueDate || null,
       isCooperative: formValues.isCooperative,
       participants: participantIds
     };
@@ -189,16 +188,15 @@ export class TaskListComponent implements OnInit {
         this.taskForm.reset({
           title: '',
           description: '',
-          category: 'diaria',
           urgency: 'media',
+          dueDate: '',
           isCooperative: false
         });
         this.selectedParticipants = [];
         this.memberSearchTerm = '';
         this.errorMessage = '';
       },
-      error: (err: any) => {
-        console.error(err);
+      error: () => {
         this.errorMessage = 'Erro ao criar missão. Tente novamente.';
       }
     });

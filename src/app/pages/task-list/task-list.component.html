@@ -29,16 +29,7 @@
         ></textarea>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="task-category">Categoria</label>
-          <select id="task-category" formControlName="category" class="form-control">
-            <option *ngFor="let cat of categories" [value]="cat">
-              {{ cat | titlecase }}
-            </option>
-          </select>
-        </div>
-
+      <div class="form-row form-row--priority-deadline">
         <div class="form-group">
           <label for="task-urgency">Urgência</label>
           <select id="task-urgency" formControlName="urgency" class="form-control">
@@ -46,6 +37,17 @@
               {{ level | titlecase }}
             </option>
           </select>
+        </div>
+
+        <div class="form-group form-group--deadline">
+          <label for="task-dueDate">Prazo final</label>
+          <input
+            id="task-dueDate"
+            type="date"
+            formControlName="dueDate"
+            class="form-control form-control--deadline"
+            [min]="today"
+          />
         </div>
       </div>
 
@@ -66,7 +68,6 @@
       <fieldset *ngIf="taskForm.get('isCooperative')?.value" class="participants-section" aria-labelledby="participants-legend">
         <legend id="participants-legend" class="participants-title">Selecionar Participantes</legend>
         
-        <!-- Campo de Pesquisa de Membros -->
         <div class="form-group member-search-group">
           <input
             type="text"
@@ -106,7 +107,7 @@
     <p>{{ errorMessage }}</p>
   </aside>
 
-    <!-- Convites pendentes para tarefas em conjunto -->
+  <!-- Convites pendentes para tarefas em conjunto -->
   <section class="task-list-section" aria-labelledby="invites-title" *ngIf="pendingInvites.length > 0">
     <header>
       <h2 id="invites-title">Convites para tarefas em conjunto ({{ pendingInvites.length }})</h2>
@@ -132,15 +133,13 @@
     </ul>
   </section>
 
-
-  
   <!-- Estado de Carregamento -->
-<div *ngIf="isLoading()" class="loading-state" aria-live="polite">
-  <p>A carregar missões...</p>
-</div>
+  <div *ngIf="isLoading()" class="loading-state" aria-live="polite">
+    <p>A carregar missões...</p>
+  </div>
 
-<!-- Secção: Missões Pendentes -->
-<section class="task-list-section" aria-labelledby="pending-title" *ngIf="!isLoading()">
+  <!-- Secção: Missões Pendentes -->
+  <section class="task-list-section" aria-labelledby="pending-title" *ngIf="!isLoading()">
     <header>
       <h2 id="pending-title">Missões Pendentes ({{ pendingTasks.length }})</h2>
     </header>
@@ -161,7 +160,7 @@
   </section>
 
   <!-- Secção: Missões Concluídas -->
-  <section class="task-list-section completed-section" aria-labelledby="completed-title" *ngIf="!isLoading && completedTasks.length > 0">
+  <section class="task-list-section completed-section" aria-labelledby="completed-title" *ngIf="!isLoading() && completedTasks.length > 0">
     <header>
       <h2 id="completed-title">Missões Concluídas ({{ completedTasks.length }})</h2>
     </header>
