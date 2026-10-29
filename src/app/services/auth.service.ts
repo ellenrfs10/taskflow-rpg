@@ -1,69 +1,73 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { SupabaseService } from './supabase-service';
-import { from, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+
+export interface AuthUser {
+    id: string;
+    email: string;
+}
 
 @Injectable({
     providedIn: 'root'
 })
 export class AuthService {
     private supabaseService = inject(SupabaseService);
+    private router = inject(Router);
     private client = this.supabaseService.supabaseClient;
 
-    // Signal para rastrear o utilizador autenticado atual
-    readonly currentUser = signal<any>(null);
+    readonly currentUser = signal<AuthUser | null>(null);
 
     constructor() {
-        // Verifica se já existe sessão ativa
-        this.client.auth.getSession().then(({ data }: { data: { session: any } }) => {
-            this.currentUser.set(data.session?.user || null);
+        this.initAuth();
+    }
+
+    private initAuth() {
+        // Verifica sessão ao iniciar
+        this.client.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+                this.currentUser.set({
+                    id: session.user.id,
+                    email: session.user.email || ''
+                });
+            } else {
+                this.currentUser.set(null);
+            }
         });
 
-        // Escuta mudanças de estado (login/logout)
-        this.client.auth.onAuthStateChange((_event: string, session: { user: any } | null) => {
-            this.currentUser.set(session?.user || null);
+        // Escuta alterações na autenticação
+        this.client.auth.onAuthStateChange((_event, session) => {
+            if (session?.user) {
+                this.currentUser.set({
+                    id: session.user.id,
+                    email: session.user.email || ''
+                });
+            } else {
+                this.currentUser.set(null);
+            }
         });
     }
 
-    // Registar novo utilizador (com metadados de nome, avatar e role)
-    signUp(email: string, password: string, name?: string, avatarId?: number, roleId?: number): Observable<any> {
-        const options: any = {};
-        if (name || avatarId || roleId) {
-            options.data = {};
-            if (name) options.data.name = name;
-            if (avatarId) options.data.avatar_id = avatarId;
-            if (roleId) options.data.role_id = roleId;
-        }
+    async signIn(email: string, password: string): Promise<void> {
+        const { error } = await this.client.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        await this.router.navigate(['/dashboard'], { replaceUrl: true });
+    }
 
-        const promise = this.client.auth.signUp({
+    async signUp(email: string, password: string): Promise<void> {
+        const { error } = await this.client.auth.signUp({
             email,
             password,
-            options: Object.keys(options).length > 0 ? options : undefined
+            options: {
+                data: {}
+            }
         });
-
-        return from(promise).pipe(
-            map(({ data, error }) => {
-                if (error) throw error;
-                return data;
-            })
-        );
+        if (error) throw error;
     }
 
-    // Iniciar sessão
-    signIn(email: string, password: string): Observable<any> {
-        const promise = this.client.auth.signInWithPassword({ email, password });
-        return from(promise).pipe(
-            map(({ data, error }) => {
-                if (error) throw error;
-                return data;
-            })
-        );
-    }
-
-    // Terminar sessão
-    signOut(): Observable<any> {
-        const promise = this.client.auth.signOut();
-        return from(promise);
+    async signOut(): Promise<void> {
+        const { error } = await this.client.auth.signOut();
+        if (error) throw error;
+        this.currentUser.set(null);
+        await this.router.navigate(['/auth'], { replaceUrl: true });
     }
 }
-

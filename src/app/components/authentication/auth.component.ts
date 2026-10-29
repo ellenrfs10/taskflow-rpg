@@ -1,20 +1,19 @@
 import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
-import { Router } from '@angular/router';
 
 @Component({
     selector: 'app-auth',
     standalone: true,
-    imports: [ReactiveFormsModule],
+    imports: [ReactiveFormsModule, CommonModule],
     templateUrl: './auth.component.html',
     styleUrls: ['./auth.component.css']
 })
 export class AuthComponent {
     private authService = inject(AuthService);
     private fb = inject(FormBuilder);
-    private router = inject(Router);
     private theme = inject(ThemeService);
 
     isLoginMode = signal<boolean>(true);
@@ -29,45 +28,41 @@ export class AuthComponent {
         password: ['', [Validators.required, Validators.minLength(6)]]
     });
 
-    toggleMode() {
-        this.isLoginMode.update(val => !val);
+    toggleMode(): void {
+        this.isLoginMode.update((val) => !val);
         this.errorMessage.set(null);
+        this.authForm.reset();
     }
 
-    toggleTheme() {
+    toggleTheme(): void {
         this.theme.toggle();
     }
 
-    onSubmit() {
-        if (this.authForm.invalid) return;
+    async onSubmit(): Promise<void> {
+        if (this.authForm.invalid || this.loading()) return;
 
         const { email, password } = this.authForm.value;
+
         this.loading.set(true);
         this.errorMessage.set(null);
 
-        if (this.isLoginMode()) {
-            this.authService.signIn(email, password).subscribe({
-                next: () => {
-                    this.loading.set(false);
-                    this.router.navigate(['/dashboard']);
-                },
-                error: (err) => {
-                    this.loading.set(false);
-                    this.errorMessage.set(err.message || 'Erro ao fazer login.');
-                }
-            });
-        } else {
-            this.authService.signUp(email, password).subscribe({
-                next: () => {
-                    this.loading.set(false);
-                    alert('Conta criada com sucesso! Verifica o teu email para confirmar (se aplicável).');
-                    this.isLoginMode.set(true);
-                },
-                error: (err) => {
-                    this.loading.set(false);
-                    this.errorMessage.set(err.message || 'Erro ao criar conta.');
-                }
-            });
+        try {
+            if (this.isLoginMode()) {
+                // O AuthService já trata do redirecionamento para /dashboard
+                await this.authService.signIn(email, password);
+            } else {
+                // Criação de conta
+                await this.authService.signUp(email, password);
+                this.errorMessage.set(null);
+                alert('Conta criada com sucesso! Verifica o teu email para confirmar, caso seja necessário.');
+                this.isLoginMode.set(true);
+                this.authForm.reset();
+            }
+        } catch (err: any) {
+            const message = err?.message || 'Ocorreu um erro ao tentar autenticar. Tenta novamente.';
+            this.errorMessage.set(message);
+        } finally {
+            this.loading.set(false);
         }
     }
 }
