@@ -111,13 +111,16 @@
   <!-- Formulário para Criar Novo Prémio -->
   <section class="add-reward-section card" aria-labelledby="add-reward-title">
     <header class="add-reward-header">
-      <h2 id="add-reward-title" class="add-reward-title">➕ Adicionar Novo Prémio à Loja</h2>
+      <h2 id="add-reward-title" class="add-reward-title">
+        <span class="add-reward-icon" aria-hidden="true">➕</span>
+        Adicionar Prémio à Loja
+      </h2>
       <p class="add-reward-subtitle">Cria novas recompensas para motivar a tua família/casa</p>
     </header>
 
     <form [formGroup]="rewardForm" (ngSubmit)="addReward()" class="reward-form" novalidate>
-      <div class="form-row">
-        <div class="form-group flex-2">
+      <div class="form-grid">
+        <div class="form-group form-group--title">
           <label class="form-label" for="title">Título do Prémio *</label>
           <input
             id="title"
@@ -129,7 +132,7 @@
           />
         </div>
 
-        <div class="form-group flex-1">
+        <div class="form-group form-group--cost">
           <label class="form-label" for="cost">Custo (Moedas) *</label>
           <input
             id="cost"
@@ -138,12 +141,11 @@
             formControlName="cost"
             min="1"
             inputmode="numeric"
+            placeholder="Ex: 50"
           />
         </div>
-      </div>
 
-      <div class="form-row">
-        <div class="form-group flex-1">
+        <div class="form-group form-group--category">
           <label class="form-label" for="category">Categoria *</label>
           <select id="category" class="form-control" formControlName="category">
             <option value="Geral">Geral</option>
@@ -153,7 +155,7 @@
           </select>
         </div>
 
-        <div class="form-group flex-1">
+        <div class="form-group form-group--icon">
           <label class="form-label" for="icon">Ícone/Emoji</label>
           <input
             id="icon"
@@ -165,27 +167,29 @@
             autocomplete="off"
           />
         </div>
+
+        <div class="form-group form-group--desc">
+          <label class="form-label" for="description">Descrição</label>
+          <input
+            id="description"
+            type="text"
+            class="form-control"
+            formControlName="description"
+            placeholder="Breve descrição da recompensa"
+            autocomplete="off"
+          />
+        </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="description">Descrição</label>
-        <input
-          id="description"
-          type="text"
-          class="form-control"
-          formControlName="description"
-          placeholder="Breve descrição da recompensa"
-          autocomplete="off"
-        />
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="btn btn-primary btn-create"
+          [disabled]="rewardForm.invalid"
+        >
+          Criar Prémio
+        </button>
       </div>
-
-      <button
-        type="submit"
-        class="btn btn-primary btn-create"
-        [disabled]="rewardForm.invalid"
-      >
-        Criar Prémio
-      </button>
     </form>
   </section>
 </main>

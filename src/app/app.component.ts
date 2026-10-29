@@ -1,9 +1,8 @@
-import { Component, computed, inject, OnInit } from '@angular/core';
+import { Component, computed, HostBinding, inject, OnInit } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { GamificationService } from './services/gamification.service';
 import { TaskService } from './services/task.service';
-import { ThemeService } from './services/theme.service';
 import { AuthService } from './services/auth.service';
 import { Task } from './models/task.model';
 
@@ -23,7 +22,11 @@ export class AppComponent implements OnInit {
   private gamificationService = inject(GamificationService);
   private taskService = inject(TaskService);
   private authService = inject(AuthService);
-  protected theme = inject(ThemeService);
+
+  @HostBinding('class.logged-in')
+  get loggedIn(): boolean {
+    return !!this.currentUser();
+  }
 
   readonly currentUser = this.authService.currentUser;
   readonly userProfile = this.gamificationService.userProfile;

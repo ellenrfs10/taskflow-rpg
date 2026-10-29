@@ -1,7 +1,8 @@
 .task-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 1rem;
   padding: 1rem;
   background: #f8fafc;
   border-radius: 8px;
@@ -20,42 +21,46 @@
   color: #64748b;
 }
 
+.task-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .task-header {
   display: flex;
-  gap: 0.5rem;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.35rem;
+}
+
+.category-badge,
+.urgency-badge,
+.coop-badge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
 }
 
 .category-badge {
   background: #e2e8f0;
   color: #334155;
-  font-size: 0.75rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-weight: 600;
 }
 
 .urgency-badge {
-  font-size: 0.75rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-weight: bold;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
 .urgency-badge.baixa { background: #dcfce7; color: #15803d; }
 .urgency-badge.media { background: #fef9c3; color: #a16207; }
-.urgency-badge.alta { background: #ffedd5; color: #c2410c; }
+.urgency-badge.alta  { background: #ffedd5; color: #c2410c; }
 .urgency-badge.critica { background: #fee2e2; color: #b91c1c; }
 
 .coop-badge {
   background: #e0e7ff;
   color: #4338ca;
-  font-size: 0.75rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-weight: 600;
 }
 
 .task-title {
@@ -71,10 +76,11 @@
 
 .task-rewards {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
+  margin-top: 0.35rem;
   font-size: 0.85rem;
   font-weight: 600;
-  margin-top: 0.35rem;
 }
 
 .reward-xp { color: #16a34a; }
@@ -84,34 +90,37 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .completed-label {
   color: #16a34a;
-  font-weight: bold;
+  font-weight: 700;
   font-size: 0.9rem;
-  padding: 0.4rem 0.6rem;
+  white-space: nowrap;
 }
 
 .btn {
   padding: 0.5rem 0.9rem;
-  border-radius: 6px;
   border: none;
+  border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  white-space: nowrap;
+  transition: background 0.2s ease;
 }
 
-.btn-success { background: #22c55e; color: white; }
+.btn-success { background: #22c55e; color: #fff; }
 .btn-success:hover { background: #16a34a; }
 
-.btn-danger { background: #ef4444; color: white; padding: 0.5rem 0.7rem; }
+.btn-danger { background: #ef4444; color: #fff; padding: 0.5rem 0.7rem; }
 .btn-danger:hover { background: #dc2626; }
 
 .timer-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  width: fit-content;
   margin: 0.2rem 0 0.6rem;
   padding: 0.25rem 0.7rem;
   border-radius: 999px;
@@ -119,34 +128,40 @@
   color: #1d4ed8;
   font-size: 0.8rem;
   font-weight: 600;
-  width: fit-content;
 }
 
-.timer-badge.warning {
-  background: rgba(245, 158, 11, 0.18);
-  color: #92400e;
-}
-
-.timer-badge.critical {
-  background: rgba(239, 68, 68, 0.16);
-  color: #dc2626;
-  animation: pulse-red 1.2s ease-in-out infinite;
-}
-
-.timer-badge.expired {
-  background: rgba(148, 163, 184,  0.2);
-  color: #475569;
-  animation: none;
-}
+.timer-badge.warning { background: rgba(245, 158, 11, 0.18); color: #92400e; }
+.timer-badge.critical { background: rgba(239, 68, 68, 0.16); color: #dc2626; animation: pulse-red 1.2s ease-in-out infinite; }
+.timer-badge.expired  { background: rgba(148, 163, 184, 0.2); color: #475569; animation: none; }
 
 @keyframes pulse-red {
-  0% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.25);
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.25); }
+  70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .task-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.9rem;
   }
-  70% {
-    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+
+  .task-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.25);
   }
-  100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+
+  .task-actions .btn-success {
+    flex: 1 1 150px;
+  }
+
+  .task-actions .btn-danger {
+    flex: 0 0 auto;
   }
 }

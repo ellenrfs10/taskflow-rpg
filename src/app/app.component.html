@@ -1,32 +1,33 @@
 <header class="app-header">
   <a class="brand" [routerLink]="currentUser() ? '/dashboard' : '/auth'" aria-label="TaskFlow RPG – página inicial">
     <span class="brand-icon" aria-hidden="true">🏰</span>
-    <span class="brand-name">TaskFlow RPG</span>
-    <small class="brand-tagline">Gestor Doméstico</small>
+    <div class="brand-text">
+      <span class="brand-name">TaskFlow RPG</span>
+      <small class="brand-tagline">Gestor Doméstico</small>
+    </div>
   </a>
 
-  <!-- Links de navegação (só com sessão iniciada) -->
   @if (currentUser()) {
     <nav class="main-nav" aria-label="Navegação principal">
-      <ul>
-        <li>
-          <a routerLink="/dashboard" routerLinkActive="active" ariaCurrentWhenActive="page">
+      <ul class="nav-list">
+        <li class="nav-item">
+          <a routerLink="/dashboard" routerLinkActive="active" ariaCurrentWhenActive="page" class="nav-link">
             <span class="nav-icon" aria-hidden="true">🏠</span>
-            <span>Dashboard</span>
+            <span class="nav-label">Dashboard</span>
           </a>
         </li>
-        <li>
+        <li class="nav-item">
           @let invites = pendingInvites();
           <a 
             routerLink="/missions" 
             routerLinkActive="active" 
             ariaCurrentWhenActive="page" 
-            class="missions-link"
+            class="nav-link missions-link"
             [title]="inviteTooltip()"
             [attr.aria-label]="inviteTooltip() || 'Missões'"
           >
             <span class="nav-icon" aria-hidden="true">⚔️</span>
-            <span>Missões</span>
+            <span class="nav-label">Missões</span>
             @if (invites.length > 0) {
               <span class="mission-dot" aria-hidden="true"></span>
             }
@@ -37,44 +38,80 @@
             }
           </a>
         </li>
-        <li>
-          <a routerLink="/shop" routerLinkActive="active" ariaCurrentWhenActive="page">
+        <li class="nav-item">
+          <a routerLink="/shop" routerLinkActive="active" ariaCurrentWhenActive="page" class="nav-link">
             <span class="nav-icon" aria-hidden="true">🛍️</span>
-            <span>Loja</span>
+            <span class="nav-label">Loja</span>
           </a>
         </li>
-        <li>
-          <a routerLink="/profile-setup" routerLinkActive="active" ariaCurrentWhenActive="page">
+        <li class="nav-item">
+          <a routerLink="/profile-setup" routerLinkActive="active" ariaCurrentWhenActive="page" class="nav-link">
             <span class="nav-icon" aria-hidden="true">🛡️</span>
-            <span>Perfil</span>
+            <span class="nav-label">Perfil</span>
           </a>
         </li>
       </ul>
     </nav>
   }
 
-  <!-- Ações: tema e sessão -->
-  <menu class="header-actions">
-    <li>
-      <button type="button" class="btn btn-theme" (click)="theme.toggle()"
-              [attr.aria-pressed]="theme.isDark()"
-              aria-label="Alternar entre modo escuro e modo claro">
-        <span aria-hidden="true">{{ theme.isDark() ? '☀️' : '🌙' }}</span>
-        <span class="btn-label">{{ theme.isDark() ? 'Modo Claro' : 'Modo Escuro' }}</span>
+  <div class="header-actions">
+    @if (currentUser()) {
+      <button type="button" class="btn btn-logout" (click)="logout()" aria-label="Terminar sessão">
+        <span aria-hidden="true">🚪</span>
+        <span class="btn-label">Sair</span>
       </button>
-    </li>
-    <li>
-      @if (currentUser()) {
-        <button type="button" class="btn btn-logout" (click)="logout()" aria-label="Terminar sessão">
-          <span aria-hidden="true">🚪</span>
-          <span class="btn-label">Sair</span>
-        </button>
-      } @else {
-        <a routerLink="/auth" class="btn btn-login">Entrar</a>
-      }
-    </li>
-  </menu>
+    } @else {
+      <a routerLink="/auth" class="btn btn-login">Entrar</a>
+    }
+  </div>
 </header>
+
+@if (currentUser()) {
+  <nav class="bottom-nav" aria-label="Navegação principal mobile">
+    <ul class="bottom-nav-list">
+      <li class="bottom-nav-item">
+        <a routerLink="/dashboard" routerLinkActive="active" ariaCurrentWhenActive="page" class="bottom-nav-link">
+          <span class="bottom-nav-icon" aria-hidden="true">🏠</span>
+          <span class="bottom-nav-label">Dashboard</span>
+        </a>
+      </li>
+      <li class="bottom-nav-item">
+        @let invites = pendingInvites();
+        <a 
+          routerLink="/missions" 
+          routerLinkActive="active" 
+          ariaCurrentWhenActive="page" 
+          class="bottom-nav-link missions-link"
+          [title]="inviteTooltip()"
+          [attr.aria-label]="inviteTooltip() || 'Missões'"
+        >
+          <span class="bottom-nav-icon" aria-hidden="true">⚔️</span>
+          <span class="bottom-nav-label">Missões</span>
+          @if (invites.length > 0) {
+            <span class="mission-dot" aria-hidden="true"></span>
+          }
+          @if (invites.length === 1 && invites[0]) {
+            <span class="invite-text">{{ invites[0].inviterName ?? 'Alguém' }} convidou-te</span>
+          } @else if (invites.length > 1) {
+            <span class="invite-text">{{ invites.length }} convites</span>
+          }
+        </a>
+      </li>
+      <li class="bottom-nav-item">
+        <a routerLink="/shop" routerLinkActive="active" ariaCurrentWhenActive="page" class="bottom-nav-link">
+          <span class="bottom-nav-icon" aria-hidden="true">🛍️</span>
+          <span class="bottom-nav-label">Loja</span>
+        </a>
+      </li>
+      <li class="bottom-nav-item">
+        <a routerLink="/profile-setup" routerLinkActive="active" ariaCurrentWhenActive="page" class="bottom-nav-link">
+          <span class="bottom-nav-icon" aria-hidden="true">🛡️</span>
+          <span class="bottom-nav-label">Perfil</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+}
 
 <main class="app-container">
   <router-outlet></router-outlet>

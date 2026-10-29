@@ -19,12 +19,16 @@
       </div>
 
       <div class="form-group">
-        <label for="task-description">Descrição</label>
+        <label for="task-description">
+          Descrição
+          <span class="char-count">({{ taskForm.get('description')?.value?.length || 0 }}/50)</span>
+        </label>
         <textarea
           id="task-description"
           formControlName="description"
           placeholder="Detalhes sobre a missão..."
           rows="3"
+          maxlength="50"
           class="form-control"
         ></textarea>
       </div>

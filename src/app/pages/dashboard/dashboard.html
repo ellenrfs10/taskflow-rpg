@@ -58,36 +58,42 @@
   <!-- Listas de missões -->
   <section class="grid" aria-label="Listas de missões">
     <article class="card" aria-labelledby="pending-heading">
-      <h2 id="pending-heading">⏳ Missões Pendentes</h2>
+      <h2 id="pending-heading">⏳ Missões Pendentes ({{ pendingTasks().length }})</h2>
 
-      @if (pendingTasks().length === 0) {
+      @if (recentPendingTasks().length === 0) {
         <p class="empty-state">Não há missões pendentes. Bom trabalho!</p>
       } @else {
         <ul class="task-list">
-          @for (task of pendingTasks(); track task.id) {
+          @for (task of recentPendingTasks(); track task.id) {
             <li class="task-item">
               <span class="task-title">{{ task.title }}</span>
               <span class="urgency-badge" [ngClass]="task.urgency">{{ task.urgency | titlecase }}</span>
             </li>
           }
         </ul>
+        @if (pendingTasks().length > 5) {
+          <a routerLink="/missions" class="view-all-link">Ver todas as missões pendentes →</a>
+        }
       }
     </article>
 
     <article class="card" aria-labelledby="completed-heading">
-      <h2 id="completed-heading">✅ Missões Concluídas</h2>
+      <h2 id="completed-heading">✅ Últimas Missões Concluídas ({{ completedTasks().length }})</h2>
 
-      @if (completedTasks().length === 0) {
+      @if (recentCompletedTasks().length === 0) {
         <p class="empty-state">Ainda nenhuma missão concluída.</p>
       } @else {
         <ul class="task-list">
-          @for (task of completedTasks(); track task.id) {
+          @for (task of recentCompletedTasks(); track task.id) {
             <li class="task-item completed">
               <span class="task-title">{{ task.title }}</span>
               <span class="reward-badge">+{{ task.xpReward }} XP</span>
             </li>
           }
         </ul>
+        @if (completedTasks().length > 5) {
+          <a routerLink="/missions" class="view-all-link">Ver todas as missões concluídas →</a>
+        }
       }
     </article>
   </section>
