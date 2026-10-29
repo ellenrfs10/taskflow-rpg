@@ -50,6 +50,14 @@ export class GamificationService {
         this.loadProfiles();
     }
 
+    // Pega a data no formato YYYY-MM-DD com base na hora local do utilizador
+    private getLocalDateString(date: Date = new Date()): string {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
     loadProfiles() {
         from(this.client.auth.getSession())
             .pipe(
@@ -116,6 +124,7 @@ export class GamificationService {
                             const currentProfile = mapped.find((p) => p.id === userId);
                             if (currentProfile) {
                                 this.userProfile.set(currentProfile);
+                                // Verifica e atualiza a sequência de dias ao carregar o perfil
                                 this.checkAndUpdateStreak();
                                 return;
                             }
@@ -139,7 +148,7 @@ export class GamificationService {
         const user = authResult.data?.user;
         if (!user) return;
 
-        const today = new Date().toISOString().split('T')[0];
+        const todayStr = this.getLocalDateString();
         const initial = this.userProfile();
         const dbPayload = {
             id: user.id,
@@ -153,7 +162,7 @@ export class GamificationService {
             coins: initial.coins,
             streak_days: initial.streakDays,
             active: true,
-            last_active_date: today
+            last_active_date: todayStr
         };
 
         const promise = (this.client as any)
@@ -171,25 +180,38 @@ export class GamificationService {
         const active = this.userProfile();
         if (!active || !active.id) return;
 
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = this.getLocalDateString();
         const lastActive = active.lastActiveDate;
 
+        // Se já acedeu hoje, não faz nada
         if (lastActive === todayStr) return;
 
         let newStreak = active.streakDays;
 
         if (!lastActive) {
+            // Primeiro acesso registado
             newStreak = 1;
         } else {
-            const lastDate = new Date(lastActive);
-            const currentDate = new Date(todayStr);
+            // Converter ambas as datas para objetos Date à meia-noite local
+            const [lastYear, lastMonth, lastDay] = lastActive.split('-').map(Number);
+            const [todayYear, todayMonth, todayDay] = todayStr.split('-').map(Number);
+
+            const lastDate = new Date(lastYear, lastMonth - 1, lastDay);
+            const currentDate = new Date(todayYear, todayMonth - 1, todayDay);
+
+            // Calcular diferença em dias
             const diffTime = currentDate.getTime() - lastDate.getTime();
-            const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
             if (diffDays === 1) {
-                newStreak += 1;
+                // Acessou ontem -> continua a sequência
+                newStreak = active.streakDays + 1;
             } else if (diffDays > 1) {
+                // Quebrou a sequência (passou mais de 1 dia sem aceder)
                 newStreak = 1;
+            } else {
+                // diffDays < 0 (data do sistema alterada) ou caso estranho
+                newStreak = active.streakDays;
             }
         }
 
@@ -252,7 +274,7 @@ export class GamificationService {
         const user = authResult.data?.user;
         if (!user) return;
 
-        const today = new Date().toISOString().split('T')[0];
+        const todayStr = this.getLocalDateString();
         const newProfileDb = {
             id: user.id,
             name,
@@ -265,7 +287,7 @@ export class GamificationService {
             coins: 30,
             streak_days: 1,
             active: false,
-            last_active_date: today
+            last_active_date: todayStr
         };
 
         const promise = (this.client as any)

@@ -124,9 +124,11 @@ export class TaskService {
             dueDate: item.due_date || item.dueDate || '',
             isCooperative: item.is_cooperative ?? item.isCooperative ?? normalizedParticipants.length > 0,
             participants: normalizedParticipants,
-            acknowledgedBy: item.acknowledged_by || []
+            acknowledgedBy: item.acknowledged_by || [],
+            profile_id: item.profile_id || null
         } as Task;
     }
+
 
     getTasks(): Observable<Task[]> {
         const promise = (this.client as any)

@@ -16,11 +16,24 @@
           </a>
         </li>
         <li>
-          <a routerLink="/missions" routerLinkActive="active" ariaCurrentWhenActive="page" class="missions-link">
+          @let invites = pendingInvites();
+          <a 
+            routerLink="/missions" 
+            routerLinkActive="active" 
+            ariaCurrentWhenActive="page" 
+            class="missions-link"
+            [title]="inviteTooltip()"
+            [attr.aria-label]="inviteTooltip() || 'Missões'"
+          >
             <span class="nav-icon" aria-hidden="true">⚔️</span>
             <span>Missões</span>
-            @if (pendingInvitesCount() > 0) {
-              <span class="mission-dot" aria-label="Tens convites pendentes para tarefas em conjunto" title="Tens convites pendentes"></span>
+            @if (invites.length > 0) {
+              <span class="mission-dot" aria-hidden="true"></span>
+            }
+            @if (invites.length === 1 && invites[0]) {
+              <span class="invite-text">{{ invites[0].inviterName ?? 'Alguém' }} convidou-te</span>
+            } @else if (invites.length > 1) {
+              <span class="invite-text">{{ invites.length }} convites</span>
             }
           </a>
         </li>
