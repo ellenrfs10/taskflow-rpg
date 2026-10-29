@@ -4,7 +4,6 @@
       <h1>Painel do Herói</h1>
       <p>Gere as tuas missões e acompanha a tua evolução.</p>
     </hgroup>
-
   </header>
 
   <!-- Perfil e resumo -->
@@ -12,7 +11,11 @@
     @if (userProfile(); as user) {
       <article class="card profile-card" aria-labelledby="profile-heading">
         <header class="profile-head">
-          <p class="avatar" aria-hidden="true">{{ user.avatar }}</p>
+          @if (user.avatar && (user.avatar.startsWith('http') || user.avatar.includes('/'))) {
+            <img class="avatar-img" [src]="user.avatar" [alt]="'Avatar de ' + user.name" loading="lazy" />
+          } @else {
+            <p class="avatar" aria-hidden="true">{{ user.avatar || '🧙‍♂️' }}</p>
+          }
           <p class="level-badge"><small>Nível</small><strong>{{ user.level }}</strong></p>
         </header>
 
@@ -26,6 +29,8 @@
         <progress [value]="xpPercent()" max="100" aria-label="Progresso de experiência"></progress>
 
         <p class="coins-badge">🪙 {{ user.coins }} Moedas de Ouro</p>
+
+        <a routerLink="/profile-setup" class="edit-profile-link">✏️ Editar perfil</a>
       </article>
     }
 
@@ -87,4 +92,3 @@
     </article>
   </section>
 </main>
-

@@ -44,7 +44,12 @@ export class GamificationService {
         streakDays: 1,
         active: true,
         lastActiveDate: null
+        
     });
+
+    refreshProfile(): void {
+        this.loadProfiles();
+    }
 
     constructor() {
         this.loadProfiles();
@@ -64,11 +69,14 @@ export class GamificationService {
                 switchMap(({ data: sessionData }: any) => {
                     let userId = sessionData?.session?.user?.id;
 
+                    const profilesPromise = (this.client as any).from('profile').select('*');
+                    const avatarsPromise = (this.client as any).from('avatar').select('*');
+
                     if (userId) {
-                        const promise = (this.client as any).from('profile').select('*');
-                        return from(promise).pipe(
-                            map((response: any) => ({
-                                response,
+                        return from(Promise.all([profilesPromise, avatarsPromise])).pipe(
+                            map(([profilesRes, avatarsRes]: any) => ({
+                                profilesRes,
+                                avatarsRes,
                                 userId
                             }))
                         );
@@ -79,10 +87,10 @@ export class GamificationService {
                             if (authError) throw authError;
                             userId = userData?.user?.id;
 
-                            const promise = (this.client as any).from('profile').select('*');
-                            return from(promise).pipe(
-                                map((response: any) => ({
-                                    response,
+                            return from(Promise.all([profilesPromise, avatarsPromise])).pipe(
+                                map(([profilesRes, avatarsRes]: any) => ({
+                                    profilesRes,
+                                    avatarsRes,
                                     userId
                                 }))
                             );
@@ -91,32 +99,53 @@ export class GamificationService {
                 })
             )
             .subscribe({
-                next: ({ response, userId }: any) => {
-                    const data = response.data as any[];
-                    const error = response.error;
+                next: ({ profilesRes, avatarsRes, userId }: any) => {
+                    const data = profilesRes.data as any[];
+                    const error = profilesRes.error;
+                    const avatarsData = avatarsRes.data as any[] || [];
 
                     if (error) {
                         console.error('Erro ao carregar perfis:', error);
                         return;
                     }
 
+                    // Criar mapa de avatares por id
+                    const avatarMap = new Map<number, string>();
+                    avatarsData.forEach((av: any) => {
+                        if (av.id && av.image_url) {
+                            avatarMap.set(Number(av.id), av.image_url);
+                        }
+                    });
+
                     if (data && data.length > 0) {
-                        const mapped: Profile[] = data.map((item: any) => ({
-                            id: item.id,
-                            name: item.name,
-                            email: item.email || '',
-                            avatar: '🧙‍♂️',
-                            role: 'Filho(a)',
-                            idAvatar: item.id_avatar,
-                            idRole: item.id_role,
-                            level: item.level || 1,
-                            currentXp: item.current_xp || 0,
-                            maxXp: item.max_xp || 100,
-                            coins: item.coins || 0,
-                            streakDays: item.streak_days || 1,
-                            active: item.active ?? true,
-                            lastActiveDate: item.last_active_date || null
-                        }));
+                        const mapped: Profile[] = data.map((item: any) => {
+                            let avatarDisplay = '🧙‍♂️';
+
+                            // Se tiver id_avatar, pega a imagem da tabela avatar
+                            if (item.id_avatar) {
+                                const avatarUrl = avatarMap.get(Number(item.id_avatar));
+                                if (avatarUrl) {
+                                    avatarDisplay = avatarUrl;
+                                }
+                            }
+
+                            return {
+                                id: item.id,
+                                name: item.name,
+                                email: item.email || '',
+                                avatar: avatarDisplay,
+                                role: 'Filho(a)',
+                                idAvatar: item.id_avatar,
+                                idRole: item.id_role,
+                                level: item.level || 1,
+                                currentXp: item.current_xp || 0,
+                                maxXp: item.max_xp || 100,
+                                coins: item.coins || 0,
+                                streakDays: item.streak_days || 1,
+                                active: item.active ?? true,
+                                lastActiveDate: item.last_active_date || null
+                            };
+                        });
 
                         this.profiles.set(mapped);
 
@@ -124,7 +153,6 @@ export class GamificationService {
                             const currentProfile = mapped.find((p) => p.id === userId);
                             if (currentProfile) {
                                 this.userProfile.set(currentProfile);
-                                // Verifica e atualiza a sequência de dias ao carregar o perfil
                                 this.checkAndUpdateStreak();
                                 return;
                             }

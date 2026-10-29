@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { HouseholdService } from '../../services/household.service';
 import { SupabaseService } from '../../services/supabase-service';
 import { ThemeService } from '../../services/theme.service';
+import { GamificationService } from '../../services/gamification.service';
 import { Household } from '../../models/household.model';
 
 @Component({
@@ -20,6 +21,7 @@ export class ProfileSetupComponent implements OnInit {
     private supabaseService = inject(SupabaseService);
     private router = inject(Router);
     private theme = inject(ThemeService);
+    private gamificationService = inject(GamificationService);
 
     private client = this.supabaseService.supabaseClient;
 
@@ -185,6 +187,9 @@ export class ProfileSetupComponent implements OnInit {
 
             if (error) throw error;
 
+            // Recarrega o perfil para atualizar o dashboard com os novos dados
+            this.gamificationService.loadProfiles();
+
             if (this.mode() === 'alone' && this.showInviteCode()) {
                 // Mantém na tela para mostrar o código e só avança ao clicar "Continuar para o Dashboard"
                 return;
@@ -199,8 +204,11 @@ export class ProfileSetupComponent implements OnInit {
     }
 
     goToDashboard() {
+        // Garante que o perfil está atualizado antes de ir para o dashboard
+        this.gamificationService.loadProfiles();
         this.router.navigate(['/dashboard'], { replaceUrl: true });
     }
+
 
     copyInviteCode() {
         const code = this.createdHousehold()?.invite_code;

@@ -29,8 +29,29 @@ export class DashboardComponent implements OnInit {
 
   readonly isDarkMode = this.theme.isDark;
 
+  // Verifica se o avatar é uma imagem ou um emoji
+  readonly avatarIsImage = computed(() => {
+    const avatar = this.userProfile().avatar;
+    if (!avatar) return false;
+    return avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.includes('/assets/');
+  });
+
+  readonly avatarImageSrc = computed(() => {
+    const avatar = this.userProfile().avatar;
+    if (this.avatarIsImage()) return avatar;
+    return null;
+  });
+
+  readonly avatarEmoji = computed(() => {
+    const avatar = this.userProfile().avatar;
+    if (this.avatarIsImage()) return null;
+    return avatar || '🧙‍♂️';
+  });
+
   ngOnInit() {
     this.taskService.loadTasks();
+    // Força o reload do perfil para garantir avatar atualizado
+    this.gamificationService.loadProfiles();
   }
 
   toggleTheme() {
