@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { TaskService } from '../../services/task.service';
@@ -18,8 +18,10 @@ export class TaskListComponent implements OnInit {
   private gamificationService: GamificationService = inject(GamificationService);
   private fb = inject(FormBuilder);
 
-  tasks: Task[] = [];
-  isLoading = false;
+  // Usa diretamente o signal do service
+  readonly tasks = computed(() => this.taskService.tasks());
+  readonly isLoading = signal<boolean>(true);
+
   errorMessage = '';
 
   members = this.gamificationService.profiles;
@@ -39,22 +41,20 @@ export class TaskListComponent implements OnInit {
   urgencyLevels: TaskUrgency[] = ['baixa', 'media', 'alta', 'critica'];
   categories: TaskCategory[] = ['diaria', 'semanal', 'mensal'];
 
-  ngOnInit() {
-    this.fetchTasks();
-  }
-
-  fetchTasks() {
-    this.isLoading = true;
-    this.taskService.getTasks().subscribe({
-      next: (data: Task[]) => {
-        this.tasks = data;
-        this.isLoading = false;
-      },
-      error: (err: any) => {
-        this.errorMessage = err.message || 'Erro ao carregar as missões.';
-        this.isLoading = false;
+  constructor() {
+    // Assim que as tarefas forem carregadas/atualizadas, tira o "A carregar"
+    effect(() => {
+      const list = this.tasks();
+      // Só considera carregado quando já temos o array (mesmo que vazio)
+      if (Array.isArray(list)) {
+        this.isLoading.set(false);
       }
     });
+  }
+
+  ngOnInit() {
+    this.isLoading.set(true);
+    this.taskService.loadTasks();
   }
 
   get pendingInvites() {
@@ -62,7 +62,7 @@ export class TaskListComponent implements OnInit {
     if (!userId) return [];
     const allProfiles = (this.members() as any[]) || [];
 
-    return this.tasks
+    return this.tasks()
       .filter((task: any) => {
         if (!task.isCooperative) return false;
         if (!Array.isArray(task.participants)) return false;
@@ -93,13 +93,8 @@ export class TaskListComponent implements OnInit {
 
     (this.taskService as any).acknowledgeInvitation(task, userId).subscribe({
       next: () => {
-        this.tasks = this.tasks.map((t: any) => {
-          if (t.id === task.id) {
-            const current = t.acknowledgedBy || [];
-            return { ...t, acknowledgedBy: [...current, userId] };
-          }
-          return t;
-        });
+        // O signal já vai atualizar, mas forçamos feedback imediato
+        this.errorMessage = '';
       },
       error: (err: any) => {
         console.error(err);
@@ -127,9 +122,9 @@ export class TaskListComponent implements OnInit {
     const userId = (this.userProfile() as any)?.id;
     if (!userId) return [];
 
-    return this.tasks.filter((t: Task) => {
-      if (t.completed) return false;
-      if (!t.isCooperative) return true;
+    return this.tasks().filter((t: Task) => {
+      if ((t as any).completed) return false;
+      if (!(t as any).isCooperative) return true;
       if ((t as any).profile_id === userId) return true;
       const acknowledged = (t as any).acknowledgedBy || [];
       return acknowledged.includes(userId);
@@ -139,10 +134,10 @@ export class TaskListComponent implements OnInit {
   get completedTasks() {
     const userId = (this.userProfile() as any)?.id;
 
-    return this.tasks.filter((t: Task) => {
-      if (!t.completed) return false;
+    return this.tasks().filter((t: Task) => {
+      if (!(t as any).completed) return false;
       if (!userId) return true;
-      if (!t.isCooperative) return true;
+      if (!(t as any).isCooperative) return true;
       if ((t as any).profile_id === userId) return true;
       const acknowledged = (t as any).acknowledgedBy || [];
       return acknowledged.includes(userId);
@@ -190,8 +185,7 @@ export class TaskListComponent implements OnInit {
     };
 
     this.taskService.addTask(newTaskData).subscribe({
-      next: (createdTask: Task) => {
-        this.tasks.unshift(createdTask);
+      next: () => {
         this.taskForm.reset({
           title: '',
           description: '',
@@ -211,13 +205,13 @@ export class TaskListComponent implements OnInit {
   }
 
   completeTask(task: Task) {
-    if (task.completed) return;
+    if ((task as any).completed) return;
     const updatedTask = { ...task, completed: true };
 
     this.taskService.updateTask(updatedTask).subscribe({
       next: () => {
-        task.completed = true;
-        (this.gamificationService as any).addRewards(task.xpReward, task.coinReward);
+        (task as any).completed = true;
+        (this.gamificationService as any).addRewards((task as any).xpReward, (task as any).coinReward);
       },
       error: (err: any) => {
         console.error(err);
@@ -228,9 +222,6 @@ export class TaskListComponent implements OnInit {
 
   deleteTask(id: number) {
     this.taskService.deleteTask(id).subscribe({
-      next: () => {
-        this.tasks = this.tasks.filter((t: Task) => t.id !== id);
-      },
       error: (err: any) => {
         console.error(err);
         this.errorMessage = 'Erro ao eliminar a missão.';

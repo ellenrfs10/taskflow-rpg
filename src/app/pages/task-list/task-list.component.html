@@ -133,13 +133,14 @@
   </section>
 
 
+  
   <!-- Estado de Carregamento -->
-  <div *ngIf="isLoading" class="loading-state" aria-live="polite">
-    <p>A carregar missões...</p>
-  </div>
+<div *ngIf="isLoading()" class="loading-state" aria-live="polite">
+  <p>A carregar missões...</p>
+</div>
 
-  <!-- Secção: Missões Pendentes -->
-  <section class="task-list-section" aria-labelledby="pending-title" *ngIf="!isLoading">
+<!-- Secção: Missões Pendentes -->
+<section class="task-list-section" aria-labelledby="pending-title" *ngIf="!isLoading()">
     <header>
       <h2 id="pending-title">Missões Pendentes ({{ pendingTasks.length }})</h2>
     </header>
