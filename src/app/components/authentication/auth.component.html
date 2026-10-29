@@ -1,59 +1,174 @@
-<main class="auth-page" [class.dark-theme]="isDarkMode()">
-  
-  <article class="auth-card" aria-labelledby="auth-title">
-    <header class="auth-header">
-      <p class="auth-badge">⚔️ TaskFlow RPG</p>
-      <h1 id="auth-title">
-        {{ isLoginMode() ? 'Bem-vindo de volta, Aventureiro!' : 'Registo de Novo Herói' }}
-      </h1>
-      <p class="auth-subtitle">
-        {{ isLoginMode()
-          ? 'Introduz as tuas credenciais para continuar a tua jornada.'
-          : 'Cria a tua conta e começa a ganhar recompensas.' }}
-      </p>
-    </header>
+<main class="auth-page">
+  <section class="auth-section" aria-labelledby="auth-heading">
+    <article class="auth-card">
+      <header class="auth-header">
+        <h1 id="auth-heading" class="auth-title">
+          <span aria-hidden="true">⚔️</span>
+          {{ isLoginMode() ? 'Entrar na Aventura' : 'Criar o teu Herói' }}
+        </h1>
+        <p class="auth-subtitle">
+          {{
+            isLoginMode()
+              ? 'Continua a tua jornada e cumpre as tuas missões.'
+              : 'Forja o teu herói para dar início à tua aventura.'
+          }}
+        </p>
+      </header>
 
-    <form class="auth-form" [formGroup]="authForm" (ngSubmit)="onSubmit()" novalidate>
-      <label class="field">
-        <span class="field-label">E-mail</span>
-        <span class="field-control">
-          <span class="field-icon" aria-hidden="true">✉️</span>
-          <input id="email" type="email" formControlName="email"
-                 placeholder="aventureiro@email.com" autocomplete="email" />
-        </span>
-      </label>
+      <form
+        class="auth-form"
+        [formGroup]="authForm"
+        (ngSubmit)="onSubmit()"
+        novalidate
+        aria-live="polite"
+      >
+        @if (!isLoginMode()) {
+          <fieldset class="form-fieldset">
+            <legend class="fieldset-legend">Dados do Herói</legend>
 
-      <label class="field">
-        <span class="field-label">Palavra-passe</span>
-        <span class="field-control">
-          <span class="field-icon" aria-hidden="true">🔒</span>
-          <input id="password" type="password" formControlName="password"
-                 placeholder="Mínimo de 6 caracteres"
-                 [attr.autocomplete]="isLoginMode() ? 'current-password' : 'new-password'" />
-        </span>
-      </label>
-
-      @if (errorMessage()) {
-        <p class="error-message" role="alert">⚠️ {{ errorMessage() }}</p>
-      }
-
-      <button type="submit" class="btn-submit" [disabled]="authForm.invalid || loading()">
-        @if (loading()) {
-          <span class="spinner" aria-hidden="true"></span>
-          A processar...
-        } @else {
-          {{ isLoginMode() ? 'Entrar na Aventura 🚀' : 'Criar Conta e Jogar ✨' }}
+            <div class="form-group">
+              <label for="name" class="form-label">Nome do Herói</label>
+              <input
+                id="name"
+                type="text"
+                class="form-control"
+                formControlName="name"
+                autocomplete="name"
+                placeholder="Ex: Arthur Pendragon"
+                [attr.aria-invalid]="authForm.get('name')?.invalid && authForm.get('name')?.touched"
+              />
+            </div>
+          </fieldset>
         }
-      </button>
-    </form>
 
-    <footer class="auth-footer">
-      <p>
-        {{ isLoginMode() ? 'Ainda não tens uma conta?' : 'Já tens uma conta?' }}
-        <button type="button" class="switch-link" (click)="toggleMode()">
-          {{ isLoginMode() ? 'Regista-te aqui' : 'Faz login' }}
+        <fieldset class="form-fieldset">
+          <legend class="fieldset-legend">
+            {{ isLoginMode() ? 'Credenciais de Acesso' : 'Dados de Acesso' }}
+          </legend>
+
+          <div class="form-group">
+            <label for="email" class="form-label">E-mail</label>
+            <input
+              id="email"
+              type="email"
+              class="form-control"
+              formControlName="email"
+              autocomplete="email"
+              inputmode="email"
+              placeholder="teu@email.com"
+              [attr.aria-invalid]="authForm.get('email')?.invalid && authForm.get('email')?.touched"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="password" class="form-label">Palavra-passe</label>
+            <input
+              id="password"
+              type="password"
+              class="form-control"
+              formControlName="password"
+              autocomplete="{{ isLoginMode() ? 'current-password' : 'new-password' }}"
+              placeholder="Mínimo de 6 caracteres"
+              [attr.aria-invalid]="authForm.get('password')?.invalid && authForm.get('password')?.touched"
+            />
+          </div>
+
+          @if (!isLoginMode()) {
+            <div class="form-group">
+              <label for="confirmPassword" class="form-label">Confirmar palavra-passe</label>
+              <input
+                id="confirmPassword"
+                type="password"
+                class="form-control"
+                formControlName="confirmPassword"
+                autocomplete="new-password"
+                placeholder="Repete a palavra-passe"
+                [attr.aria-invalid]="authForm.hasError('passwordMismatch') && authForm.get('confirmPassword')?.touched"
+              />
+              @if (authForm.hasError('passwordMismatch') && authForm.get('confirmPassword')?.touched) {
+                <small class="form-error-text">As palavras-passe não coincidem.</small>
+              }
+            </div>
+          }
+        </fieldset>
+
+        @if (!isLoginMode()) {
+          <fieldset class="form-fieldset">
+            <legend class="fieldset-legend">Personalização do Herói</legend>
+
+            <section class="selection-group" aria-labelledby="role-heading">
+              <header class="selection-group-header">
+                <h2 id="role-heading" class="selection-group-title">Escolhe a tua Classe</h2>
+              </header>
+              <ul class="role-grid" role="list">
+                @for (role of roles(); track role.id) {
+                  <li class="role-grid-item">
+                    <button
+                      type="button"
+                      class="role-option"
+                      [class.selected]="selectedRoleId() === role.id"
+                      [attr.aria-pressed]="selectedRoleId() === role.id"
+                      (click)="selectRole(role.id)"
+                    >
+                      <span class="role-icon" aria-hidden="true">🛡️</span>
+                      <span class="role-name">{{ role.name }}</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            </section>
+
+            <section class="selection-group" aria-labelledby="avatar-heading">
+              <header class="selection-group-header">
+                <h2 id="avatar-heading" class="selection-group-title">Escolhe o teu Avatar</h2>
+              </header>
+              <ul class="avatar-grid" role="list">
+                @for (avatar of avatars(); track avatar.id) {
+                  <li class="avatar-grid-item">
+                    <button
+                      type="button"
+                      class="avatar-option"
+                      [class.selected]="selectedAvatarId() === avatar.id"
+                      [attr.aria-pressed]="selectedAvatarId() === avatar.id"
+                      [attr.aria-label]="'Selecionar avatar ' + avatar.name"
+                      (click)="selectAvatar(avatar.id)"
+                    >
+                      <img
+                        class="avatar-image"
+                        [src]="avatar.image_url"
+                        [alt]="avatar.name"
+                        loading="lazy"
+                      />
+                      <span class="avatar-name">{{ avatar.name }}</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            </section>
+          </fieldset>
+        }
+
+        @if (errorMessage()) {
+          <aside class="error-banner" role="alert" aria-live="assertive">
+            <p class="error-banner-text">
+              <span aria-hidden="true">⚠️</span>
+              {{ errorMessage() }}
+            </p>
+          </aside>
+        }
+
+        <button
+          type="submit"
+          class="btn btn-primary btn-auth-submit"
+          [disabled]="authForm.invalid || loading() || (!isLoginMode() && (!selectedAvatarId() || !selectedRoleId()))"
+          [attr.aria-busy]="loading()"
+        >
+          {{ loading() ? 'A processar...' : (isLoginMode() ? 'Entrar' : 'Criar Conta') }}
         </button>
-      </p>
-    </footer>
-  </article>
-</main>
+      </form>
+
+      <footer class="auth-footer">
+        <p class="switch-text">
+          {{ isLoginMode() ? 'Ainda não tens conta?' : 'Já tens conta?' }}
+          <button type="button" class="link-button" (click)="toggleMode()">
+            {{ isLoginMode() ? 'Criar conta

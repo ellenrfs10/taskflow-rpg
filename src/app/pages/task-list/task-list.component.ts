@@ -22,8 +22,9 @@ export class TaskListComponent implements OnInit {
   isLoading = false;
   errorMessage = '';
 
-  // Lista de perfis para seleção de participantes
   members = this.gamificationService.profiles;
+  userProfile = this.gamificationService.userProfile;
+
   memberSearchTerm: string = '';
   selectedParticipants: ParticipantContribution[] = [];
 
@@ -45,44 +46,123 @@ export class TaskListComponent implements OnInit {
   fetchTasks() {
     this.isLoading = true;
     this.taskService.getTasks().subscribe({
-      next: (data) => {
+      next: (data: Task[]) => {
         this.tasks = data;
         this.isLoading = false;
       },
-      error: (err) => {
+      error: (err: any) => {
         this.errorMessage = err.message || 'Erro ao carregar as missões.';
         this.isLoading = false;
       }
     });
   }
 
+  get pendingInvites() {
+    const userId = (this.userProfile() as any)?.id;
+    if (!userId) return [];
+    const allProfiles = (this.members() as any[]) || [];
+
+    return this.tasks
+      .filter((task: any) => {
+        if (!task.isCooperative) return false;
+        if (!Array.isArray(task.participants)) return false;
+
+        const isParticipant = task.participants.some((p: any) => {
+          if (typeof p === 'string') return p === userId;
+          if (p && typeof p === 'object') return p.userId === userId;
+          return false;
+        });
+
+        if (!isParticipant) return false;
+
+        const acknowledged = task.acknowledgedBy || [];
+        return !acknowledged.includes(userId);
+      })
+      .map((task: any) => {
+        const inviter = allProfiles.find((p: any) => p.id === task.profile_id);
+        return {
+          ...task,
+          inviterName: inviter?.name || 'Alguém'
+        };
+      });
+  }
+
+  acceptInvite(task: any) {
+    const userId = (this.userProfile() as any)?.id;
+    if (!userId) return;
+
+    (this.taskService as any).acknowledgeInvitation(task, userId).subscribe({
+      next: () => {
+        this.tasks = this.tasks.map((t: any) => {
+          if (t.id === task.id) {
+            const current = t.acknowledgedBy || [];
+            return { ...t, acknowledgedBy: [...current, userId] };
+          }
+          return t;
+        });
+      },
+      error: (err: any) => {
+        console.error(err);
+        this.errorMessage = 'Erro ao aceitar convite.';
+      }
+    });
+  }
+
+  inviterNameForTask(task: Task): string {
+    const allProfiles = (this.members() as any[]) || [];
+    const profileId = (task as any)?.profile_id;
+    if (!profileId) return 'Alguém';
+    const inviter = allProfiles.find((p: any) => p.id === profileId);
+    return inviter?.name || 'Alguém';
+  }
+
   get filteredMembers() {
     const term = this.memberSearchTerm.toLowerCase().trim();
-    const list = this.members() as any[];
+    const list = (this.members() as any[]) || [];
     if (!term) return list;
     return list.filter((m: any) => m?.name?.toLowerCase().includes(term));
   }
 
   get pendingTasks() {
-    return this.tasks.filter(t => !t.completed);
+    const userId = (this.userProfile() as any)?.id;
+    if (!userId) return [];
+
+    return this.tasks.filter((t: Task) => {
+      if (t.completed) return false;
+      if (!t.isCooperative) return true;
+      if ((t as any).profile_id === userId) return true;
+      const acknowledged = (t as any).acknowledgedBy || [];
+      return acknowledged.includes(userId);
+    });
   }
 
   get completedTasks() {
-    return this.tasks.filter(t => t.completed);
+    const userId = (this.userProfile() as any)?.id;
+
+    return this.tasks.filter((t: Task) => {
+      if (!t.completed) return false;
+      if (!userId) return true;
+      if (!t.isCooperative) return true;
+      if ((t as any).profile_id === userId) return true;
+      const acknowledged = (t as any).acknowledgedBy || [];
+      return acknowledged.includes(userId);
+    });
   }
 
-  onParticipantToggle(member: any, event: any) {
-    if (event.target.checked) {
-      const alreadyExists = this.selectedParticipants.some(p => p.userId === member.id);
-      if (alreadyExists) return;
+  onParticipantToggle(member: any, event: Event) {
+    const target = event.target as HTMLInputElement;
+    if (!target) return;
 
+    if (target.checked) {
+      const alreadyExists = this.selectedParticipants.some((p) => p.userId === member.id);
+      if (alreadyExists) return;
       this.selectedParticipants.push({
         userId: member.id,
         userName: member.name,
         actionsCompleted: 0
       });
     } else {
-      this.selectedParticipants = this.selectedParticipants.filter(p => p.userId !== member.id);
+      this.selectedParticipants = this.selectedParticipants.filter((p) => p.userId !== member.id);
     }
   }
 
@@ -93,12 +173,12 @@ export class TaskListComponent implements OnInit {
     const rewards = this.calculateRewards(formValues.urgency);
 
     const participantIds = formValues.isCooperative
-      ? this.selectedParticipants.map(p => p.userId)
+      ? this.selectedParticipants.map((p) => p.userId)
       : [];
 
     const newTaskData: any = {
       title: formValues.title,
-      description: formValues.description,
+      description: formValues.description || '',
       category: formValues.category,
       urgency: formValues.urgency,
       completed: false,
@@ -110,7 +190,7 @@ export class TaskListComponent implements OnInit {
     };
 
     this.taskService.addTask(newTaskData).subscribe({
-      next: (createdTask) => {
+      next: (createdTask: Task) => {
         this.tasks.unshift(createdTask);
         this.taskForm.reset({
           title: '',
@@ -123,7 +203,8 @@ export class TaskListComponent implements OnInit {
         this.memberSearchTerm = '';
         this.errorMessage = '';
       },
-      error: () => {
+      error: (err: any) => {
+        console.error(err);
         this.errorMessage = 'Erro ao criar missão. Tente novamente.';
       }
     });
@@ -131,7 +212,6 @@ export class TaskListComponent implements OnInit {
 
   completeTask(task: Task) {
     if (task.completed) return;
-
     const updatedTask = { ...task, completed: true };
 
     this.taskService.updateTask(updatedTask).subscribe({
@@ -139,7 +219,8 @@ export class TaskListComponent implements OnInit {
         task.completed = true;
         (this.gamificationService as any).addRewards(task.xpReward, task.coinReward);
       },
-      error: () => {
+      error: (err: any) => {
+        console.error(err);
         this.errorMessage = 'Erro ao atualizar o estado da missão.';
       }
     });
@@ -148,9 +229,10 @@ export class TaskListComponent implements OnInit {
   deleteTask(id: number) {
     this.taskService.deleteTask(id).subscribe({
       next: () => {
-        this.tasks = this.tasks.filter(t => t.id !== id);
+        this.tasks = this.tasks.filter((t: Task) => t.id !== id);
       },
-      error: () => {
+      error: (err: any) => {
+        console.error(err);
         this.errorMessage = 'Erro ao eliminar a missão.';
       }
     });
@@ -158,11 +240,15 @@ export class TaskListComponent implements OnInit {
 
   private calculateRewards(urgency: TaskUrgency): { xp: number; coins: number } {
     switch (urgency) {
-      case 'critica': return { xp: 100, coins: 50 };
-      case 'alta': return { xp: 60, coins: 30 };
-      case 'media': return { xp: 40, coins: 20 };
+      case 'critica':
+        return { xp: 100, coins: 50 };
+      case 'alta':
+        return { xp: 60, coins: 30 };
+      case 'media':
+        return { xp: 40, coins: 20 };
       case 'baixa':
-      default: return { xp: 20, coins: 10 };
+      default:
+        return { xp: 20, coins: 10 };
     }
   }
 }

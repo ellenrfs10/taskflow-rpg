@@ -216,6 +216,7 @@ export class TaskService {
                     due_date: taskData.dueDate || null,
                     is_cooperative: isCoop,
                     participants: participantIds,
+                    acknowledged_by: [],
                     created_at: new Date().toISOString(),
                     profile_id: user.id
                 };

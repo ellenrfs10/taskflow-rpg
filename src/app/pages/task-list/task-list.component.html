@@ -106,6 +106,33 @@
     <p>{{ errorMessage }}</p>
   </aside>
 
+    <!-- Convites pendentes para tarefas em conjunto -->
+  <section class="task-list-section" aria-labelledby="invites-title" *ngIf="pendingInvites.length > 0">
+    <header>
+      <h2 id="invites-title">Convites para tarefas em conjunto ({{ pendingInvites.length }})</h2>
+    </header>
+
+    <ul class="task-grid" role="list">
+      <li *ngFor="let invite of pendingInvites" class="task-item">
+        <div class="invite-card">
+          <div class="invite-card-header">
+            <span class="coop-badge">🤝 Co-op</span>
+            <span class="urgency-badge" [ngClass]="invite.urgency">{{ invite.urgency | titlecase }}</span>
+          </div>
+          <h3 class="invite-title">{{ invite.title }}</h3>
+          <p class="invite-desc" *ngIf="invite.description">{{ invite.description }}</p>
+          <p class="invite-from">Convidado por <strong>{{ invite.inviterName }}</strong></p>
+          <div class="invite-rewards">
+            <span>⭐ +{{ invite.xpReward }} XP</span>
+            <span>🪙 +{{ invite.coinReward }} Moedas</span>
+          </div>
+          <button class="btn-accept-invite" (click)="acceptInvite(invite)">Aceitar convite</button>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+
   <!-- Estado de Carregamento -->
   <div *ngIf="isLoading" class="loading-state" aria-live="polite">
     <p>A carregar missões...</p>
