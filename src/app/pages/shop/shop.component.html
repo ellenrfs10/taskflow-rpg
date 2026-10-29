@@ -1,89 +1,151 @@
-<div class="shop-container">
+<main class="shop-page">
   <!-- Saldo Atual -->
-  <header class="shop-header card">
-    <h2>🏪 Loja de Recompensas</h2>
+  <header class="shop-header card" aria-labelledby="shop-title">
+    <div class="shop-header-info">
+      <h1 id="shop-title" class="shop-title">🏪 Loja de Recompensas</h1>
+      <p class="shop-subtitle">Troca as tuas moedas por prémios merecidos</p>
+    </div>
     <div class="user-balance">
-      <span>O teu saldo:</span>
-      <strong class="coins-badge">🪙 {{ user().coins }} Moedas</strong>
+      <span class="balance-label">O teu saldo:</span>
+      <strong class="coins-badge" aria-label="Tens {{ user().coins }} moedas">
+        <span aria-hidden="true">🪙</span> {{ user().coins }} Moedas
+      </strong>
     </div>
   </header>
 
   <!-- Filtros e Ordenação -->
-  <section class="controls-bar card">
+  <section class="controls-bar card" aria-labelledby="filters-title">
+    <h2 id="filters-title" class="sr-only">Filtros e ordenação da loja</h2>
+
     <div class="filter-group">
-      <label>📁 Categoria:</label>
-      <div class="btn-group">
-        <button 
-          *ngFor="let cat of categories" 
-          (click)="filterByCategory(cat)"
-          [class.active]="selectedCategory() === cat"
-          class="btn-filter"
-        >
-          {{ cat }}
-        </button>
+      <span class="filter-label">📁 Categoria:</span>
+      <div class="btn-group" role="group" aria-label="Filtrar prémios por categoria">
+        @for (cat of categories; track cat) {
+          <button
+            type="button"
+            (click)="filterByCategory(cat)"
+            [class.active]="selectedCategory() === cat"
+            [attr.aria-pressed]="selectedCategory() === cat"
+            class="btn-filter"
+          >
+            {{ cat }}
+          </button>
+        }
       </div>
     </div>
 
     <div class="filter-group">
-      <label>📊 Ordenar por Preço:</label>
-      <select [value]="sortByPrice()" (change)="setSortOrder($any($event.target).value)" class="select-sort">
+      <label class="filter-label" for="sort-price">📊 Ordenar por Preço:</label>
+      <select
+        id="sort-price"
+        class="select-sort"
+        [value]="sortByPrice()"
+        (change)="setSortOrder($any($event.target).value)"
+        aria-label="Ordenar prémios por preço"
+      >
         <option value="none">Padrão</option>
-        <option value="asc">Mais barato ➔ Mais caro</option>
-        <option value="desc">Mais caro ➔ Mais barato</option>
+        <option value="asc">Mais barato → Mais caro</option>
+        <option value="desc">Mais caro → Mais barato</option>
       </select>
     </div>
   </section>
 
-  <!-- Grelha de Prêmios -->
-  <section class="rewards-grid">
-    <div *ngFor="let reward of filteredRewards()" class="reward-card card">
-      <button class="btn-delete" (click)="removeReward(reward.id)" title="Eliminar Prémio">🗑️</button>
-      
-      <div class="reward-icon">{{ reward.icon || '🎁' }}</div>
-      <span class="category-tag">{{ reward.category }}</span>
-      
-      <h3>{{ reward.title }}</h3>
-      <p>{{ reward.description }}</p>
+  <!-- Grelha de Prémios -->
+  <section class="rewards-section" aria-labelledby="rewards-heading">
+    <header class="rewards-header">
+      <h2 id="rewards-heading" class="section-title">Prémios Disponíveis</h2>
+    </header>
 
-      <div class="reward-footer">
-        <span class="cost-tag">🪙 {{ reward.cost }}</span>
-        <button 
-          class="btn btn-buy" 
-          [disabled]="user().coins < reward.cost"
-          (click)="buyReward(reward)"
-        >
-          Resgatar
-        </button>
+    @if (filteredRewards().length > 0) {
+      <div class="rewards-grid" role="list">
+        @for (reward of filteredRewards(); track reward.id) {
+          <article class="reward-card card" role="listitem" aria-labelledby="reward-{{ reward.id }}">
+            <button
+              class="btn-delete"
+              type="button"
+              (click)="removeReward(reward.id)"
+              title="Eliminar prémio"
+              aria-label="Eliminar prémio {{ reward.title }}"
+            >
+              🗑️
+            </button>
+
+            <div class="reward-icon" aria-hidden="true">{{ reward.icon || '🎁' }}</div>
+            <span class="category-tag">{{ reward.category }}</span>
+
+            <h3 id="reward-{{ reward.id }}" class="reward-title">{{ reward.title }}</h3>
+            <p class="reward-description">{{ reward.description }}</p>
+
+            <footer class="reward-footer">
+              <span class="cost-tag">
+                <span aria-hidden="true">🪙</span> {{ reward.cost }}
+              </span>
+              <button
+                class="btn btn-buy"
+                type="button"
+                [disabled]="user().coins < reward.cost || isBuying()"
+                [attr.aria-busy]="isBuying()"
+                (click)="buyReward(reward)"
+              >
+                {{
+                  user().coins < reward.cost
+                    ? 'Moedas insuficientes'
+                    : isBuying()
+                      ? 'A processar...'
+                      : 'Resgatar'
+                }}
+              </button>
+            </footer>
+          </article>
+        }
       </div>
-    </div>
-
-    <p *ngIf="filteredRewards().length === 0" class="no-items">
-      Nenhum prémio encontrado nesta categoria.
-    </p>
+    } @else {
+      <p class="no-items">
+        Nenhum prémio encontrado nesta categoria.
+      </p>
+    }
   </section>
 
-  <hr class="divider" />
+  <hr class="divider" aria-hidden="true" />
 
   <!-- Formulário para Criar Novo Prémio -->
-  <section class="add-reward-section card">
-    <h3>➕ Adicionar Novo Prémio à Loja</h3>
-    <form [formGroup]="rewardForm" (ngSubmit)="addReward()" class="reward-form">
+  <section class="add-reward-section card" aria-labelledby="add-reward-title">
+    <header class="add-reward-header">
+      <h2 id="add-reward-title" class="add-reward-title">➕ Adicionar Novo Prémio à Loja</h2>
+      <p class="add-reward-subtitle">Cria novas recompensas para motivar a tua família/casa</p>
+    </header>
+
+    <form [formGroup]="rewardForm" (ngSubmit)="addReward()" class="reward-form" novalidate>
       <div class="form-row">
         <div class="form-group flex-2">
-          <label for="title">Título do Prémio *</label>
-          <input id="title" type="text" formControlName="title" placeholder="Ex: Ver um filme" />
+          <label class="form-label" for="title">Título do Prémio *</label>
+          <input
+            id="title"
+            type="text"
+            class="form-control"
+            formControlName="title"
+            placeholder="Ex: Ver um filme"
+            autocomplete="off"
+          />
         </div>
 
         <div class="form-group flex-1">
-          <label for="cost">Custo (Moedas) *</label>
-          <input id="cost" type="number" formControlName="cost" min="1" />
+          <label class="form-label" for="cost">Custo (Moedas) *</label>
+          <input
+            id="cost"
+            type="number"
+            class="form-control"
+            formControlName="cost"
+            min="1"
+            inputmode="numeric"
+          />
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group flex-1">
-          <label for="category">Categoria *</label>
-          <select id="category" formControlName="category">
+          <label class="form-label" for="category">Categoria *</label>
+          <select id="category" class="form-control" formControlName="category">
             <option value="Geral">Geral</option>
             <option value="Lazer">Lazer</option>
             <option value="Privilégios">Privilégios</option>
@@ -92,19 +154,38 @@
         </div>
 
         <div class="form-group flex-1">
-          <label for="icon">Ícone/Emoji</label>
-          <input id="icon" type="text" formControlName="icon" placeholder="Ex: 🍿" />
+          <label class="form-label" for="icon">Ícone/Emoji</label>
+          <input
+            id="icon"
+            type="text"
+            class="form-control"
+            formControlName="icon"
+            placeholder="Ex: 🍿"
+            maxlength="4"
+            autocomplete="off"
+          />
         </div>
       </div>
 
       <div class="form-group">
-        <label for="description">Descrição</label>
-        <input id="description" type="text" formControlName="description" placeholder="Breve descrição da recompensa" />
+        <label class="form-label" for="description">Descrição</label>
+        <input
+          id="description"
+          type="text"
+          class="form-control"
+          formControlName="description"
+          placeholder="Breve descrição da recompensa"
+          autocomplete="off"
+        />
       </div>
 
-      <button type="submit" class="btn btn-primary" [disabled]="rewardForm.invalid">
+      <button
+        type="submit"
+        class="btn btn-primary btn-create"
+        [disabled]="rewardForm.invalid"
+      >
         Criar Prémio
       </button>
     </form>
   </section>
-</div>
+</main>

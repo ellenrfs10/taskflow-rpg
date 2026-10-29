@@ -1,0 +1,112 @@
+<main class="setup-page">
+  <section class="setup-section">
+    <article class="setup-card">
+      <header class="setup-header">
+        <h1 class="setup-title">Configurar o teu Perfil</h1>
+        <p class="setup-subtitle">Define o teu herói, classe, avatar e modo de jogo</p>
+      </header>
+
+      @if (!showInviteCode()) {
+        <form class="setup-form" [formGroup]="setupForm" (ngSubmit)="finishSetup()" novalidate>
+          <fieldset class="setup-fieldset">
+            <legend class="setup-legend">Identidade do Herói</legend>
+            <div class="form-group">
+              <label class="form-label" for="name">Nome do Herói</label>
+              <input id="name" class="form-control" formControlName="name" placeholder="Ex: Arthur Pendragon" autocomplete="name" />
+            </div>
+          </fieldset>
+
+          <fieldset class="setup-fieldset">
+            <legend class="setup-legend">Personalização</legend>
+
+            <div class="selection-block">
+              <p class="selection-title">1) Escolhe a tua Classe</p>
+              <div class="role-grid">
+                @for (role of roles(); track role.id) {
+                  <button type="button" class="role-option" [class.selected]="selectedRoleId() === role.id" (click)="selectRole(role.id)">
+                    <span class="role-icon">🛡️</span>
+                    <span class="role-name">{{ role.name }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="selection-block">
+              <p class="selection-title">2) Escolhe o teu Avatar</p>
+              <div class="avatar-grid">
+                @for (avatar of avatars(); track avatar.id) {
+                  <button type="button" class="avatar-option" [class.selected]="selectedAvatarId() === avatar.id" (click)="selectAvatar(avatar.id)">
+                    <img [src]="avatar.image_url" [alt]="avatar.name" loading="lazy" />
+                    <span class="avatar-name">{{ avatar.name }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="setup-fieldset">
+            <legend class="setup-legend">Modo de Jogo</legend>
+
+            <div class="mode-grid">
+              <button type="button" class="mode-card" [class.selected]="mode() === 'alone'" (click)="selectMode('alone')">
+                <div class="mode-card-header">
+                  <span class="mode-icon">👤</span>
+                  <h2 class="mode-title">Jogar sozinho(a)</h2>
+                </div>
+                <p class="mode-desc">Cria a tua casa e recebe um código para partilhar mais tarde.</p>
+              </button>
+              <button type="button" class="mode-card" [class.selected]="mode() === 'together'" (click)="selectMode('together')">
+                <div class="mode-card-header">
+                  <span class="mode-icon">👨‍👩‍👧</span>
+                  <h2 class="mode-title">Jogar com alguém da casa</h2>
+                </div>
+                <p class="mode-desc">Junta-te a uma casa já existente com o código de convite.</p>
+              </button>
+            </div>
+
+            @if (mode() === 'alone') {
+              <div class="form-group">
+                <label class="form-label" for="householdName">Nome da tua casa</label>
+                <input id="householdName" class="form-control" formControlName="householdName" placeholder="Ex: Casa dos Heróis" />
+              </div>
+            }
+
+            @if (mode() === 'together') {
+              <div class="form-group">
+                <label class="form-label" for="inviteCode">Código de convite da casa</label>
+                <input id="inviteCode" class="form-control" [(ngModel)]="inviteCode" [ngModelOptions]="{standalone: true}" placeholder="Ex: ABC123" maxlength="6" autocapitalize="characters" />
+                <small class="form-hint">Pede o código à pessoa que criou a casa.</small>
+              </div>
+            }
+          </fieldset>
+
+          @if (errorMessage()) {
+            <aside class="error-banner">
+              <p>{{ errorMessage() }}</p>
+            </aside>
+          }
+
+          <button
+            class="btn-finish"
+            type="submit"
+            [disabled]="loading() || setupForm.invalid || selectedRoleId() === null || selectedAvatarId() === null || (mode() === 'together' && inviteCode.trim().length < 6)"
+          >
+            {{ loading() ? 'A guardar...' : 'Concluir configuração' }}
+          </button>
+        </form>
+      } @else {
+        <div class="invite-code-panel">
+          <div class="invite-code-icon">🏠</div>
+          <h2 class="invite-code-title">Casa criada com sucesso!</h2>
+          <p class="invite-code-subtitle">Partilha este código com quem vai jogar contigo nesta casa</p>
+          <div class="invite-code-box">
+            <span class="invite-code-text">{{ createdHousehold()?.invite_code }}</span>
+            <button type="button" class="btn-copy" (click)="copyInviteCode()">Copiar código</button>
+          </div>
+          <p class="invite-code-info">Com este código, a outra pessoa consegue entrar na mesma casa e partilharão a loja e as recompensas.</p>
+          <button class="btn-finish" type="button" (click)="goToDashboard()">Ir para o Dashboard</button>
+        </div>
+      }
+    </article>
+  </section>
+</main>

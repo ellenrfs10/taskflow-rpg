@@ -23,81 +23,84 @@ export class ShopComponent {
   readonly user = this.gamificationService.userProfile;
 
   // Filtros
-  selectedCategory = signal<string>('Todas');
-  sortByPrice = signal<'asc' | 'desc' | 'none'>('none');
+  readonly selectedCategory = signal<string>('Todas');
+  readonly sortByPrice = signal<'asc' | 'desc' | 'none'>('none');
+
+  // Estados
+  readonly isBuying = signal<boolean>(false);
 
   categories: string[] = ['Todas', 'Geral', 'Lazer', 'Privilégios', 'Guloseimas'];
+  icons: string[] = ['🎁', '🎮', '🍕', '🎬', '🛏️', '🎉', '🧸', '🏆'];
 
   // Formulário Reativo para criar novo prémio
   rewardForm: FormGroup = this.fb.group({
     title: ['', [Validators.required, Validators.minLength(3)]],
     description: [''],
     cost: [50, [Validators.required, Validators.min(1)]],
-    icon: ['🎁', Validators.required],
-    category: ['Geral' as RewardCategory, Validators.required]
+    icon: ['🎁', [Validators.required]],
+    category: ['Geral' as RewardCategory, [Validators.required]]
   });
 
   // Lista reativa filtrada e ordenada
-  filteredRewards = computed(() => {
+  readonly filteredRewards = computed(() => {
     let list = [...this.shopService.rewards()];
 
     // 1. Filtrar por Categoria
     const category = this.selectedCategory();
     if (category !== 'Todas') {
-      list = list.filter(r => r.category === category);
+      list = list.filter((r: Reward) => r.category === category);
     }
 
     // 2. Ordenar por Preço
     const order = this.sortByPrice();
     if (order === 'asc') {
-      list.sort((a, b) => a.cost - b.cost); // Do mais barato ao mais caro
+      list.sort((a: Reward, b: Reward) => a.cost - b.cost);
     } else if (order === 'desc') {
-      list.sort((a, b) => b.cost - a.cost); // Do mais caro ao mais barato
+      list.sort((a: Reward, b: Reward) => b.cost - a.cost);
     }
 
     return list;
   });
 
   // Métodos de Controlo dos Filtros
-  filterByCategory(cat: string) {
+  filterByCategory(cat: string): void {
     this.selectedCategory.set(cat);
   }
 
-  setSortOrder(order: 'asc' | 'desc' | 'none') {
+  setSortOrder(order: 'asc' | 'desc' | 'none'): void {
     this.sortByPrice.set(order);
   }
 
-  // Ação de Comprar Prémio (com conversão segura do ID para string)
-  async buyReward(reward: Reward) {
+  // Ação de Comprar Prémio
+  async buyReward(reward: Reward): Promise<void> {
     const currentUser = this.user();
 
-    // 1. Validar se o utilizador e o ID existem
-    if (!currentUser || currentUser.id === undefined || currentUser.id === null) {
+    if (!currentUser || !currentUser.id) {
       alert('❌ Erro: Utilizador não identificado.');
       return;
     }
-
-    // Converte o ID para string para satisfazer a tipagem da tabela
-    const userId: string = String(currentUser.id);
 
     if (currentUser.coins < reward.cost) {
       alert('❌ Moedas insuficientes para resgatar este prémio!');
       return;
     }
 
-    const client = this.supabaseService.supabaseClient;
-    const newCoins = currentUser.coins - reward.cost;
+    if (this.isBuying()) return;
+
+    this.isBuying.set(true);
 
     try {
-      // 2. Descontar as moedas no perfil do herói
-      const { error: profileError } = await client
-        .from('profile')
-        .update({ coins: newCoins })
-        .eq('id', userId);
+      const userId = String(currentUser.id);
+      const client = this.supabaseService.supabaseClient;
 
-      if (profileError) throw profileError;
+      // 1. Descontar moedas através do GamificationService (mantém o signal sincronizado)
+      const spent = this.gamificationService.spendCoins(reward.cost);
 
-      // 3. Registar o resgate na tabela user_rewards
+      if (!spent) {
+        throw new Error('Não foi possível descontar as moedas.');
+      }
+
+      // 2. Registar o resgate na tabela user_rewards
       const { error: rewardError } = await client
         .from('user_rewards')
         .insert({
@@ -107,17 +110,16 @@ export class ShopComponent {
 
       if (rewardError) throw rewardError;
 
-      // 4. Atualizar o ecrã para refletir as novas moedas
-      window.location.reload();
-
       alert(`🎉 Parabéns! Resgataste "${reward.title}" com sucesso!`);
     } catch (err: any) {
       console.error('Erro ao processar resgate:', err);
       alert('❌ Ocorreu um erro ao resgatar o prémio. Tenta novamente.');
+    } finally {
+      this.isBuying.set(false);
     }
   }
 
-  addReward() {
+  addReward(): void {
     if (this.rewardForm.invalid) return;
 
     this.shopService.addReward(this.rewardForm.value);
@@ -130,7 +132,7 @@ export class ShopComponent {
     });
   }
 
-  removeReward(id: string) {
+  removeReward(id: string): void {
     if (confirm('Tem a certeza que deseja eliminar este prémio da loja?')) {
       this.shopService.deleteReward(id);
     }

@@ -1,7 +1,5 @@
-/* ---------- Tema claro (padrão) ---------- */
 :host {
   --page-bg: radial-gradient(circle at 85% 0%, #e2d6ff 0%, transparent 55%), #f5f1ff;
-  --page-bg-size: auto;
   --bar-bg: rgba(255, 255, 255, .9);
   --bar-border: #ddd0fb;
   --bar-shadow: 0 4px 18px rgba(109, 40, 217, .10);
@@ -12,12 +10,11 @@
   --btn-from: #7c3aed;
   --btn-to: #a855f7;
   --btn-glow: 0 6px 16px rgba(124, 58, 237, .3);
-  --brand-glow: none;
   --bad: #b91c1c;
   --bad-bg: #fee2e2;
   --bad-border: #fecaca;
 
-  /* usados também pelas páginas: min-height: calc(100dvh - var(--header-h) - var(--bottom-h)) */
+  /* usados pelas páginas: min-height: calc(100dvh - var(--header-h) - var(--bottom-h)) */
   --header-h: 4rem;
   --bottom-h: 0px;
 
@@ -25,32 +22,6 @@
   min-height: 100dvh;
   color: var(--text);
   background: var(--page-bg);
-  background-size: var(--page-bg-size);
-  transition: background-color .3s, color .3s;
-}
-
-/* ---------- Tema escuro: roxo neon + grelha ---------- */
-:host(.dark-theme) {
-  --page-bg:
-    linear-gradient(rgba(168, 85, 247, .08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(168, 85, 247, .08) 1px, transparent 1px),
-    radial-gradient(ellipse at 50% 0%, #34106e 0%, transparent 65%),
-    #07040f;
-  --page-bg-size: 44px 44px, 44px 44px, auto, auto;
-  --bar-bg: rgba(10, 5, 24, .88);
-  --bar-border: #4a2a99;
-  --bar-shadow: 0 0 24px rgba(168, 85, 247, .25);
-  --text: #f6f1ff;
-  --muted: #a99ccf;
-  --surface: #150d33;
-  --accent: #c9a8ff;
-  --btn-from: #8b5cf6;
-  --btn-to: #d946ef;
-  --btn-glow: 0 0 18px rgba(192, 82, 255, .5);
-  --brand-glow: 0 0 14px rgba(168, 85, 247, .8);
-  --bad: #fca5a5;
-  --bad-bg: rgba(239, 68, 68, .14);
-  --bad-border: rgba(239, 68, 68, .45);
 }
 
 /* ---------- Cabeçalho ---------- */
@@ -61,6 +32,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+  box-sizing: border-box;
   height: var(--header-h);
   padding: 0 clamp(1rem, 3vw, 2rem);
   background: var(--bar-bg);
@@ -68,18 +40,18 @@
   box-shadow: var(--bar-shadow);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  transition: background .3s, border-color .3s;
 }
 
 .brand { display: flex; align-items: baseline; gap: .5rem; color: var(--text); text-decoration: none; white-space: nowrap; }
 .brand-icon { font-size: 1.4rem; }
-.brand-name { font-family: Georgia, 'Times New Roman', serif; font-size: 1.25rem; font-weight: 700; color: var(--accent); text-shadow: var(--brand-glow); }
+.brand-name { font-family: Georgia, 'Times New Roman', serif; font-size: 1.25rem; font-weight: 700; color: var(--accent); }
 .brand-tagline { font-size: .75rem; color: var(--muted); }
 
 /* ---------- Navegação ---------- */
 .main-nav { margin-inline: auto; }
 .main-nav ul { display: flex; gap: .35rem; margin: 0; padding: 0; list-style: none; }
 .main-nav a {
+  position: relative;
   display: flex;
   align-items: center;
   gap: .45rem;
@@ -93,10 +65,34 @@
 .main-nav a:hover { background: var(--surface); color: var(--text); }
 .main-nav a.active { background: linear-gradient(135deg, var(--btn-from), var(--btn-to)); color: #fff; box-shadow: var(--btn-glow); }
 
-/* ---------- Ações ---------- */
-.header-actions { display: flex; align-items: center; gap: .5rem; margin: 0 0 0 auto; padding: 0; list-style: none; }
-.main-nav + .header-actions { margin-left: 0; }
+/* Texto do convite: só para leitores de ecrã (o tooltip cobre o resto) */
+.invite-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
+.mission-dot {
+  position: absolute;
+  top: .35rem;
+  right: .55rem;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulse-dot 1.8s infinite;
+}
+
+@keyframes pulse-dot {
+  0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, .4); }
+  70%  { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* ---------- Botões ---------- */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -108,38 +104,37 @@
   font: inherit;
   font-size: .85rem;
   font-weight: 700;
-  text-decoration: none;
   cursor: pointer;
-  transition: transform .15s, filter .2s, background .2s;
+  transition: transform .15s, filter .2s;
 }
 .btn:hover { transform: scale(1.04); }
-.btn-theme { background: var(--surface); border-color: var(--bar-border); color: var(--text); }
-.btn-logout { background: var(--bad-bg); border-color: var(--bad-border); color: var(--bad); }
-.btn-login { background: linear-gradient(135deg, var(--btn-from), var(--btn-to)); color: #fff; box-shadow: var(--btn-glow); }
-.btn-login:hover { filter: brightness(1.1); }
+.btn-logout { margin-left: auto; background: var(--bad-bg); border-color: var(--bad-border); color: var(--bad); }
+.main-nav + .btn-logout { margin-left: 0; }
 
 :focus-visible { outline: 2px solid var(--btn-from); outline-offset: 2px; }
 
 .app-container { display: block; padding-bottom: var(--bottom-h); }
 
-/* ---------- Ecrãs médios: esconde o subtítulo ---------- */
+/* ---------- Responsivo ---------- */
 @media (max-width: 899px) {
   .brand-tagline { display: none; }
 }
 
-/* ---------- Telemóvel: navegação vira barra fixa em baixo ---------- */
 @media (max-width: 767px) {
-  :host(.logged-in) { --bottom-h: 4.25rem; }
   :host { --header-h: 3.5rem; }
+  :host(.logged-in) { --bottom-h: 4.25rem; }
 
   .btn-label { display: none; }
   .btn { padding: .5rem .7rem; font-size: 1rem; }
+  .btn-logout { margin-left: auto; }
 
   .main-nav {
     position: fixed;
     inset: auto 0 0 0;
     z-index: 50;
+    box-sizing: border-box;
     height: var(--bottom-h);
+    margin: 0;
     padding-bottom: env(safe-area-inset-bottom, 0);
     background: var(--bar-bg);
     border-top: 1px solid var(--bar-border);
@@ -151,38 +146,11 @@
   .main-nav li { flex: 1; }
   .main-nav a { flex-direction: column; justify-content: center; gap: .1rem; height: 100%; padding: .25rem; border-radius: 0; font-size: .7rem; }
   .main-nav a.active { background: transparent; color: var(--accent); box-shadow: none; }
-  .main-nav a.active .nav-icon { filter: drop-shadow(0 0 6px var(--btn-from)); transform: scale(1.2); }
+  .main-nav a.active .nav-icon { transform: scale(1.2); }
   .nav-icon { font-size: 1.3rem; transition: transform .2s; }
+  .mission-dot { top: .5rem; right: calc(50% - 1.2rem); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; }
-}
-
-.missions-link {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.mission-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #ef4444;
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.18);
-  animation: pulse-dot 1.8s infinite;
-}
-
-@keyframes pulse-dot {
-  0% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-  }
+  * { transition: none !important; animation: none !important; }
 }
