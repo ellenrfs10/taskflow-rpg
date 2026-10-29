@@ -8,6 +8,17 @@
       <span *ngIf="task.isCooperative" class="coop-badge">🤝 Co-op</span>
     </div>
 
+    <div *ngIf="task.isCooperative" class="invited-by">
+      <small>Convidado por <strong>{{ inviterName }}</strong></small>
+    </div>
+
+    @if (timeLeft) {
+      <div class="timer-badge" [class.critical]="isCritical" [class.expired]="isExpired">
+        <span aria-hidden="true">⏰</span>
+        <span>{{ timeLeft }}</span>
+      </div>
+    }
+
     <h4 class="task-title">{{ task.title }}</h4>
     <p class="task-desc" *ngIf="task.description">{{ task.description }}</p>
 
