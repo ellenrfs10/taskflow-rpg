@@ -34,10 +34,14 @@ export class ProfileSetupComponent implements OnInit {
     selectedRoleId = signal<number | null>(null);
 
     mode = signal<'alone' | 'together'>('alone');
-    inviteCode = '';
+    inviteCodeInput = '';
 
     createdHousehold = signal<Household | null>(null);
     showInviteCode = signal<boolean>(false);
+    householdInviteCode = signal<string | null>(null);
+    householdName = signal<string>('');
+
+    joinMethod = signal<'code' | 'create'>('code');
 
     setupForm: FormGroup = this.fb.group({
         name: ['', [Validators.required, Validators.minLength(2)]],
@@ -50,6 +54,7 @@ export class ProfileSetupComponent implements OnInit {
         this.loadAvatars();
         this.loadRoles();
         this.prefillName();
+        this.loadExistingHouseholdCode();
     }
 
     toggleTheme() {
@@ -61,6 +66,30 @@ export class ProfileSetupComponent implements OnInit {
         if (user?.user_metadata?.['name']) {
             this.setupForm.patchValue({ name: user.user_metadata['name'] });
         }
+    }
+
+    private async loadExistingHouseholdCode() {
+        const { data: { user } } = await this.client.auth.getUser();
+        if (!user) return;
+
+        const { data: profile, error } = await (this.client as any)
+            .from('profile')
+            .select('household_id')
+            .eq('id', user.id)
+            .single();
+
+        if (error || !profile?.household_id) return;
+
+        this.householdService.getHouseholdById(profile.household_id).subscribe({
+            next: (household) => {
+                this.householdInviteCode.set(household.invite_code);
+                this.householdName.set(household.name);
+                this.showInviteCode.set(true);
+            },
+            error: () => {
+                this.householdInviteCode.set(null);
+            }
+        });
     }
 
     async loadAvatars() {
@@ -116,7 +145,8 @@ export class ProfileSetupComponent implements OnInit {
         this.errorMessage.set(null);
         this.showInviteCode.set(false);
         this.createdHousehold.set(null);
-        this.inviteCode = '';
+        this.inviteCodeInput = '';
+        this.joinMethod.set('code');
     }
 
     selectAvatar(id: number) {
@@ -127,16 +157,6 @@ export class ProfileSetupComponent implements OnInit {
     selectRole(id: number) {
         this.selectedRoleId.set(id);
         this.errorMessage.set(null);
-    }
-
-    private async userAlreadyInHousehold(userId: string): Promise<boolean> {
-        const { data, error } = await (this.client as any)
-            .from('profile')
-            .select('household_id')
-            .eq('id', userId)
-            .single();
-        if (error) return false;
-        return !!data?.household_id;
     }
 
     async finishSetup() {
@@ -152,9 +172,11 @@ export class ProfileSetupComponent implements OnInit {
             return;
         }
 
-        if (this.mode() === 'together' && !this.inviteCode.trim()) {
-            this.errorMessage.set('Insere o código de convite da casa para entrar.');
-            return;
+        if (this.mode() === 'together') {
+            if (this.joinMethod() === 'code' && !this.inviteCodeInput.trim()) {
+                this.errorMessage.set('Insere o código de convite da casa para entrar.');
+                return;
+            }
         }
 
         this.loading.set(true);
@@ -164,22 +186,29 @@ export class ProfileSetupComponent implements OnInit {
             const { data: { user } } = await this.client.auth.getUser();
             if (!user) throw new Error('Sessão inválida. Volta a iniciar sessão.');
 
-            if (await this.userAlreadyInHousehold(user.id)) {
-                throw new Error('Já pertenceste a uma casa. Não podes criar ou entrar noutra.');
-            }
-
             let householdId: string | null = null;
 
             if (this.mode() === 'alone') {
-                const household = await this.householdService.createHousehold(this.setupForm.value.householdName).toPromise();
-                if (!household) throw new Error('Não foi possível criar a casa.');
-                householdId = household.id;
-                this.createdHousehold.set(household);
-                this.showInviteCode.set(true);
+                // Jogador sozinho NÃO cria casa
+                householdId = null;
+                this.showInviteCode.set(false);
             } else {
-                const household = await this.householdService.joinHousehold(this.inviteCode).toPromise();
-                if (!household) throw new Error('Código de convite inválido.');
-                householdId = household.id;
+                if (this.joinMethod() === 'code') {
+                    const household = await this.householdService.joinHousehold(this.inviteCodeInput).toPromise();
+                    if (!household) throw new Error('Código de convite inválido.');
+                    householdId = household.id;
+                    this.householdInviteCode.set(household.invite_code);
+                    this.householdName.set(household.name);
+                    this.showInviteCode.set(true);
+                } else {
+                    const household = await this.householdService.createHousehold(this.setupForm.value.householdName).toPromise();
+                    if (!household) throw new Error('Não foi possível criar a casa.');
+                    householdId = household.id;
+                    this.createdHousehold.set(household);
+                    this.householdInviteCode.set(household.invite_code);
+                    this.householdName.set(household.name);
+                    this.showInviteCode.set(true);
+                }
             }
 
             const { name } = this.setupForm.value;
@@ -203,7 +232,12 @@ export class ProfileSetupComponent implements OnInit {
 
             this.gamificationService.loadProfiles();
 
-            if (this.mode() === 'alone' && this.showInviteCode()) {
+            if (this.mode() === 'alone') {
+                this.router.navigate(['/dashboard'], { replaceUrl: true });
+                return;
+            }
+
+            if (this.showInviteCode()) {
                 return;
             }
 
@@ -221,10 +255,30 @@ export class ProfileSetupComponent implements OnInit {
     }
 
     copyInviteCode() {
-        const code = this.createdHousehold()?.invite_code;
+        const code = this.householdInviteCode() ?? this.createdHousehold()?.invite_code;
         if (!code) return;
         navigator.clipboard.writeText(code).then(() => {
             alert('Código copiado: ' + code);
         });
+    }
+
+    async leaveHousehold() {
+        const { data: { user } } = await this.client.auth.getUser();
+        if (!user) return;
+
+        this.loading.set(true);
+        try {
+            await this.householdService.leaveHousehold(user.id).toPromise();
+            this.householdInviteCode.set(null);
+            this.householdName.set('');
+            this.showInviteCode.set(false);
+            this.createdHousehold.set(null);
+            this.errorMessage.set(null);
+            this.gamificationService.loadProfiles();
+        } catch (err: any) {
+            this.errorMessage.set(err?.message || 'Erro ao sair da casa.');
+        } finally {
+            this.loading.set(false);
+        }
     }
 }

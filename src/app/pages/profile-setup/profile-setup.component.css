@@ -230,3 +230,35 @@
     letter-spacing: 0.4rem;
   }
 }
+.join-method {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.join-option {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.8rem 1rem;
+  border: 2px solid #d6c9f7;
+  border-radius: 12px;
+  background: #f8f5ff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #374151;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.join-option:hover {
+  border-color: #7c3aed;
+}
+
+.join-option.selected {
+  border-color: #7c3aed;
+  background-color: #f3edff;
+  color: #6d28d9;
+}
+
