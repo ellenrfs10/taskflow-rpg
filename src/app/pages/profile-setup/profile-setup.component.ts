@@ -183,8 +183,10 @@ export class ProfileSetupComponent implements OnInit {
         this.errorMessage.set(null);
 
         try {
-            const { data: { user } } = await this.client.auth.getUser();
-            if (!user) throw new Error('Sessão inválida. Volta a iniciar sessão.');
+            const { data: { user }, error: authError } = await this.client.auth.getUser();
+            if (authError || !user) {
+                throw new Error('Sessão expirada. Volta a iniciar sessão.');
+            }
 
             let householdId: string | null = null;
 
