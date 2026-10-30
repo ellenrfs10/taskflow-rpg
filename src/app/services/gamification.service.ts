@@ -215,25 +215,34 @@ export class GamificationService {
         const todayStr = this.getLocalDateString();
         const lastActive = active.lastActiveDate;
 
+        // Se já acedeu hoje, não faz nada
         if (lastActive === todayStr) return;
 
         let newStreak = active.streakDays;
 
         if (!lastActive) {
+            // Primeiro acesso registado
             newStreak = 1;
         } else {
+            // Converter ambas as datas para objetos Date à meia-noite local (ignorar horas)
             const [lastYear, lastMonth, lastDay] = lastActive.split('-').map(Number);
             const [todayYear, todayMonth, todayDay] = todayStr.split('-').map(Number);
+
             const lastDate = new Date(lastYear, lastMonth - 1, lastDay);
             const currentDate = new Date(todayYear, todayMonth - 1, todayDay);
+
+            // Diferença em dias inteiros (apenas data, sem horas)
             const diffTime = currentDate.getTime() - lastDate.getTime();
-            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
             if (diffDays === 1) {
+                // Acessou ontem -> continua a sequência
                 newStreak = active.streakDays + 1;
             } else if (diffDays > 1) {
+                // Quebrou a sequência (passou mais de 1 dia sem aceder)
                 newStreak = 1;
             } else {
+                // diffDays <= 0 (data estranha) -> mantém
                 newStreak = active.streakDays;
             }
         }
@@ -257,6 +266,7 @@ export class GamificationService {
                     lastActiveDate: todayStr
                 };
                 this.userProfile.set(updated);
+
                 this.profiles.update((list) =>
                     list.map((p) => (p.id === active.id ? updated : p))
                 );

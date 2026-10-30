@@ -26,6 +26,7 @@ export class ProfileSetupComponent implements OnDestroy, OnInit {
 
     private client = this.supabaseService.supabaseClient;
 
+    
     loading = signal<boolean>(false);
     errorMessage = signal<string | null>(null);
 
@@ -291,5 +292,8 @@ export class ProfileSetupComponent implements OnDestroy, OnInit {
         } finally {
             this.loading.set(false);
         }
+    }
+    goToProfileEdit() {
+        this.router.navigate(['/profile/edit'], { replaceUrl: true });
     }
 }

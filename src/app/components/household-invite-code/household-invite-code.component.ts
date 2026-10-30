@@ -8,13 +8,13 @@ import { CommonModule } from '@angular/common';
     template: `
         @if (code()) {
             <div class="household-invite">
-                <label class="invite-label">{{ label() }}</label>
                 <div class="invite-box">
                     <span class="invite-text">{{ code() }}</span>
                     <button type="button" class="btn-copy" (click)="onCopy()">
                         {{ copied() ? 'Copiado!' : 'Copiar' }}
                     </button>
                 </div>
+                <label class="invite-label">{{ label() }}</label>
                 @if (copied()) {
                     <p class="invite-hint">Código copiado para a área de transferência.</p>
                 }
@@ -22,13 +22,78 @@ import { CommonModule } from '@angular/common';
         }
     `,
     styles: [`
-        .household-invite { display: flex; flex-direction: column; gap: 0.5rem; align-items: center; text-align: center; width: 100%; }
-        .invite-label { font-size: 0.75rem; font-weight: 700; color: var(--accent, #7c3aed); text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
-        .invite-box { display: flex; gap: 0.5rem; align-items: center; justify-content: center; width: 100%; }
-        .invite-text { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 1.1rem; font-weight: 800; color: var(--text, #1b1235); background: var(--card-bg, #ffffff); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid var(--card-border, #ddd0fb); word-break: break-all; user-select: all; flex: 1; }
-        .btn-copy { padding: 0.4rem 0.8rem; font-size: 0.8rem; font-weight: 700; color: var(--accent, #7c3aed); background: transparent; border: 1px solid var(--card-border, #ddd0fb); border-radius: 6px; cursor: pointer; transition: all 0.2s; }
-        .btn-copy:hover { background: var(--surface, #f3eeff); border-color: var(--accent, #7c3aed); }
-        .invite-hint { font-size: 0.7rem; color: var(--muted, #6b5f8f); margin: 0; }
+        .household-invite {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+        }
+
+        .invite-box {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .invite-text {
+            flex: 1;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #7c3aed;
+            background: #ffffff;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            border: 1px solid #ddd0fb;
+            word-break: break-all;
+            user-select: all;
+            text-align: center;
+            height: 2.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-copy {
+            flex: 0 0 auto;
+            padding: 0.5rem 0.8rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #7c3aed;
+            background: transparent;
+            border: 1px solid #ddd0fb;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 2.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-copy:hover {
+            background: #f3eeff;
+            border-color: #7c3aed;
+        }
+
+        .invite-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #7c3aed;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0;
+        }
+
+        .invite-hint {
+            font-size: 0.7rem;
+            color: #6b5f8f;
+            margin: 0;
+        }
     `]
 })
 export class HouseholdInviteCodeComponent {

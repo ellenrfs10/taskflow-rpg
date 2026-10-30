@@ -30,11 +30,14 @@
 
         <p class="coins-badge">🪙 {{ user.coins }} Moedas de Ouro</p>
 
-        <app-household-invite-code
+        <div class="household-invite-wrapper">
+          <app-household-invite-code
           [code]="inviteCode()"
           label="Código da tua casa"
           (codeCopied)="copyInviteCode()">
         </app-household-invite-code>
+        </div>
+        
 
         <a routerLink="/profile-setup" class="edit-profile-link">✏️ Editar perfil</a>
       </article>

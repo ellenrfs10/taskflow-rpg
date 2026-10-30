@@ -248,6 +248,11 @@ progress::-webkit-progress-value { border-radius: 999px; background: linear-grad
   color: #6b5f8f;
 }
 
+.household-invite-wrapper {
+  margin-top: 1rem;
+  width: 100%;
+}
+
 /* Listas de missões */
 .task-list { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
 .task-item { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .7rem 1rem; background: #f3eeff; border-left: 4px solid #7c3aed; border-radius: 10px; }
