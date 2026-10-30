@@ -15,6 +15,8 @@ Taskflow RPG é um sistema de gestão de tarefas gamificado desenvolvido em Angu
 - **Loja**: Resgatar recompensas com moedas
 - **Dashboard**: Resumo do jogador, prazo mais próximo, última recompensa resgatada, código da casa para partilhar
 
+**Observação:** Para conseguir convidar membros para a sua casa, ambos precisam estar logados.
+
 ## Stack tecnológica
 
 - [Angular 22](https://angular.io/) (standalone components, signals, control flow `@if`/`@for`/`@switch`)
@@ -23,7 +25,7 @@ Taskflow RPG é um sistema de gestão de tarefas gamificado desenvolvido em Angu
 - [TypeScript](https://www.typescriptlang.org/)
 - [Vitest](https://vitest.dev/) (testes unitários)
 
-## Requisitos do projeto (entrega 01/11/26, apresentação 02/11/26)
+## Requisitos do projeto
 
 - [x] `@switch` no template do dashboard (badges de urgência)
 - [x] Componente filho com `@Input`, `@Output` e `EventEmitter` (`app-household-invite-code`)
