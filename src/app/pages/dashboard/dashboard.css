@@ -72,7 +72,6 @@
 h1, h2, p { margin: 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-/* ---------- Cabeçalho ---------- */
 .page-header {
   display: flex;
   flex-wrap: wrap;
@@ -102,7 +101,6 @@ hgroup p { margin-top: .2rem; font-size: .875rem; color: var(--muted); }
 }
 .theme-toggle:hover { transform: scale(1.05); }
 
-/* ---------- Grelhas e cartões ---------- */
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 1.25rem; }
 .card {
   min-width: 0;
@@ -116,7 +114,6 @@ hgroup p { margin-top: .2rem; font-size: .875rem; color: var(--muted); }
 }
 .card > h2 { margin-bottom: .9rem; font-size: 1.1rem; }
 
-/* ---------- Perfil ---------- */
 .profile-card { display: flex; flex-direction: column; align-items: center; text-align: center; }
 .profile-card > h2 { margin: .75rem 0 .25rem; font-size: 1.25rem; }
 .profile-head { display: flex; align-items: flex-end; gap: .9rem; filter: var(--badge-glow); }
@@ -140,20 +137,166 @@ progress::-moz-progress-bar { border-radius: 999px; background: linear-gradient(
 
 .coins-badge { margin-top: 1rem; padding: .4rem .9rem; border-radius: 999px; background: var(--gold-bg); color: var(--gold); font-size: .9rem; font-weight: 700; }
 
+.household-code {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  text-align: center;
+}
+
+.household-label {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0 0 .5rem 0;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.invite-code-box {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: .5rem;
+}
+
+.invite-code-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+  background: var(--card-bg);
+  padding: .5rem .75rem;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  word-break: break-all;
+  user-select: all;
+}
+
+.btn-copy-invite {
+  padding: .4rem .8rem;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all .2s;
+}
+
+.btn-copy-invite:hover {
+  background: var(--surface);
+  border-color: var(--accent);
+}
+
+.household-hint {
+  font-size: .75rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.edit-profile-link {
+  margin-top: 1rem;
+  align-self: flex-start;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  transition: opacity .2s ease;
+}
+
+.edit-profile-link:hover {
+  opacity: .8;
+  text-decoration: underline;
+}
+
 /* ---------- Estatísticas e ações ---------- */
 .stats-card { display: flex; flex-direction: column; }
-.stats { display: flex; justify-content: space-around; margin: .5rem 0 1.25rem; padding: 0; list-style: none; }
+.stats { display: flex; justify-content: space-around; margin: .5rem 0 .5rem; padding: 0; list-style: none; }
 .stats li { display: flex; flex-direction: column; align-items: center; }
 .stat-number { font-size: clamp(2rem, 8vw, 2.4rem); line-height: 1.1; color: var(--accent); }
 .stat-label { font-size: .85rem; color: var(--muted); }
 
-.actions { display: grid; gap: .7rem; margin-top: auto; }
+.actions { display: grid; gap: .4rem; margin-top: auto; }
 .btn { padding: .75rem 1rem; border: 1px solid transparent; border-radius: 10px; font-size: .95rem; font-weight: 600; text-align: center; text-decoration: none; transition: filter .2s, transform .1s; }
 .btn:active { transform: scale(.98); }
 .btn-primary { background: linear-gradient(135deg, var(--btn-from), var(--btn-to)); color: #fff; box-shadow: var(--btn-glow); }
 .btn-primary:hover { filter: brightness(1.1); }
 .btn-secondary { background: var(--surface); border-color: var(--card-border); color: var(--text); }
 .btn-secondary:hover { border-color: var(--btn-from); }
+
+/* ---------- Prazo mais próximo ---------- */
+.deadline-card {
+  margin-top: .75rem;
+  padding: .75rem;
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.deadline-label {
+  display: block;
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--streak);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: .25rem;
+}
+
+.deadline-title {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: .15rem;
+}
+
+.deadline-date {
+  display: block;
+  font-size: .85rem;
+  color: var(--muted);
+}
+
+/* ---------- Última recompensa ---------- */
+.reward-card {
+  margin-top: .75rem;
+  padding: .75rem;
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.reward-label {
+  display: block;
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: .25rem;
+}
+
+.reward-title {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: .15rem;
+}
+
+.reward-date {
+  display: block;
+  font-size: .85rem;
+  color: var(--muted);
+}
 
 /* ---------- Listas de missões ---------- */
 .task-list { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
@@ -165,7 +308,7 @@ progress::-moz-progress-bar { border-radius: 999px; background: linear-gradient(
 .urgency-badge.baixa { background: var(--ok-bg); color: var(--ok); }
 .urgency-badge.media { background: var(--gold-bg); color: var(--gold); }
 .urgency-badge.alta { background: var(--warn-bg); color: var(--warn); }
-.urgency-badge.critica { background: var(--bad-bg); color: var(--bad); }
+.urgency-badge.critica { background: var(--bad-bg); color: var(--bad); font-weight: 800; }
 .reward-badge { font-size: .8rem; color: var(--ok); }
 .empty-state { padding: 1.2rem 0; text-align: center; font-size: .85rem; color: var(--muted); }
 
@@ -185,19 +328,4 @@ progress::-moz-progress-bar { border-radius: 999px; background: linear-gradient(
   object-fit: cover;
   border: 2px solid var(--card-border, #ddd0fb);
   box-shadow: 0 8px 24px rgba(109, 40, 217, 0.18);
-}
-
-.edit-profile-link {
-  margin-top: 1rem;
-  align-self: flex-start;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--accent, #6d28d9);
-  text-decoration: none;
-  transition: opacity 0.2s ease;
-}
-
-.edit-profile-link:hover {
-  opacity: 0.8;
-  text-decoration: underline;
 }

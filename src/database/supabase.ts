@@ -63,6 +63,30 @@ export type Database = {
         }
         Relationships: []
       }
+      households: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          invite_code: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          invite_code: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          invite_code?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profile: {
         Row: {
           active: boolean | null
@@ -70,12 +94,15 @@ export type Database = {
           created_at: string
           current_xp: number | null
           email: string
+          household_id: string | null
           id: string
           id_avatar: number | null
           id_role: number | null
           level: number | null
           max_xp: number | null
           name: string
+          profile_completed: boolean | null
+          setup_mode: string | null
           streak_days: number | null
         }
         Insert: {
@@ -84,12 +111,15 @@ export type Database = {
           created_at?: string
           current_xp?: number | null
           email: string
+          household_id?: string | null
           id: string
           id_avatar?: number | null
           id_role?: number | null
           level?: number | null
           max_xp?: number | null
           name: string
+          profile_completed?: boolean | null
+          setup_mode?: string | null
           streak_days?: number | null
         }
         Update: {
@@ -98,12 +128,15 @@ export type Database = {
           created_at?: string
           current_xp?: number | null
           email?: string
+          household_id?: string | null
           id?: string
           id_avatar?: number | null
           id_role?: number | null
           level?: number | null
           max_xp?: number | null
           name?: string
+          profile_completed?: boolean | null
+          setup_mode?: string | null
           streak_days?: number | null
         }
         Relationships: [
@@ -119,6 +152,13 @@ export type Database = {
             columns: ["id_role"]
             isOneToOne: false
             referencedRelation: "role"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
             referencedColumns: ["id"]
           },
           {
@@ -188,8 +228,67 @@ export type Database = {
         }
         Relationships: []
       }
+      task_subtasks: {
+        Row: {
+          assigned_to: string | null
+          completed: boolean | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          id: number
+          sort_order: number | null
+          task_id: number
+          title: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed?: boolean | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          id?: number
+          sort_order?: number | null
+          task_id: number
+          title: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed?: boolean | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          id?: number
+          sort_order?: number | null
+          task_id?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_subtasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_subtasks_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_subtasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
+          acknowledged_by: string[] | null
           category: string | null
           coin_reward: number | null
           completed: boolean | null
@@ -205,6 +304,7 @@ export type Database = {
           xp_reward: number | null
         }
         Insert: {
+          acknowledged_by?: string[] | null
           category?: string | null
           coin_reward?: number | null
           completed?: boolean | null
@@ -220,6 +320,7 @@ export type Database = {
           xp_reward?: number | null
         }
         Update: {
+          acknowledged_by?: string[] | null
           category?: string | null
           coin_reward?: number | null
           completed?: boolean | null

@@ -129,6 +129,16 @@ export class ProfileSetupComponent implements OnInit {
         this.errorMessage.set(null);
     }
 
+    private async userAlreadyInHousehold(userId: string): Promise<boolean> {
+        const { data, error } = await (this.client as any)
+            .from('profile')
+            .select('household_id')
+            .eq('id', userId)
+            .single();
+        if (error) return false;
+        return !!data?.household_id;
+    }
+
     async finishSetup() {
         if (this.setupForm.invalid || this.loading()) return;
 
@@ -153,6 +163,10 @@ export class ProfileSetupComponent implements OnInit {
         try {
             const { data: { user } } = await this.client.auth.getUser();
             if (!user) throw new Error('Sessão inválida. Volta a iniciar sessão.');
+
+            if (await this.userAlreadyInHousehold(user.id)) {
+                throw new Error('Já pertenceste a uma casa. Não podes criar ou entrar noutra.');
+            }
 
             let householdId: string | null = null;
 
@@ -187,11 +201,9 @@ export class ProfileSetupComponent implements OnInit {
 
             if (error) throw error;
 
-            // Recarrega o perfil para atualizar o dashboard com os novos dados
             this.gamificationService.loadProfiles();
 
             if (this.mode() === 'alone' && this.showInviteCode()) {
-                // Mantém na tela para mostrar o código e só avança ao clicar "Continuar para o Dashboard"
                 return;
             }
 
@@ -204,11 +216,9 @@ export class ProfileSetupComponent implements OnInit {
     }
 
     goToDashboard() {
-        // Garante que o perfil está atualizado antes de ir para o dashboard
         this.gamificationService.loadProfiles();
         this.router.navigate(['/dashboard'], { replaceUrl: true });
     }
-
 
     copyInviteCode() {
         const code = this.createdHousehold()?.invite_code;

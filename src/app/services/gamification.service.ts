@@ -18,6 +18,7 @@ export interface Profile {
     streakDays: number;
     active: boolean;
     lastActiveDate: string | null;
+    household_id?: string | null;
 }
 
 @Injectable({
@@ -44,7 +45,7 @@ export class GamificationService {
         streakDays: 1,
         active: true,
         lastActiveDate: null
-        
+
     });
 
     refreshProfile(): void {
@@ -55,7 +56,6 @@ export class GamificationService {
         this.loadProfiles();
     }
 
-    // Pega a data no formato YYYY-MM-DD com base na hora local do utilizador
     private getLocalDateString(date: Date = new Date()): string {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -109,7 +109,6 @@ export class GamificationService {
                         return;
                     }
 
-                    // Criar mapa de avatares por id
                     const avatarMap = new Map<number, string>();
                     avatarsData.forEach((av: any) => {
                         if (av.id && av.image_url) {
@@ -120,15 +119,12 @@ export class GamificationService {
                     if (data && data.length > 0) {
                         const mapped: Profile[] = data.map((item: any) => {
                             let avatarDisplay = '🧙‍♂️';
-
-                            // Se tiver id_avatar, pega a imagem da tabela avatar
                             if (item.id_avatar) {
                                 const avatarUrl = avatarMap.get(Number(item.id_avatar));
                                 if (avatarUrl) {
                                     avatarDisplay = avatarUrl;
                                 }
                             }
-
                             return {
                                 id: item.id,
                                 name: item.name,
@@ -143,16 +139,24 @@ export class GamificationService {
                                 coins: item.coins || 0,
                                 streakDays: item.streak_days || 1,
                                 active: item.active ?? true,
-                                lastActiveDate: item.last_active_date || null
+                                lastActiveDate: item.last_active_date || null,
+                                household_id: item.household_id ?? null
                             };
                         });
 
-                        this.profiles.set(mapped);
+                        const currentProfile = mapped.find((p) => p.id === userId);
+                        const userHouseholdId = currentProfile?.household_id ?? null;
+
+                        const filtered = mapped.filter((p) =>
+                            p.id === userId || (userHouseholdId && p.household_id === userHouseholdId)
+                        );
+
+                        this.profiles.set(filtered);
 
                         if (userId) {
-                            const currentProfile = mapped.find((p) => p.id === userId);
-                            if (currentProfile) {
-                                this.userProfile.set(currentProfile);
+                            const cp = filtered.find((p) => p.id === userId);
+                            if (cp) {
+                                this.userProfile.set(cp);
                                 this.checkAndUpdateStreak();
                                 return;
                             }
@@ -211,34 +215,25 @@ export class GamificationService {
         const todayStr = this.getLocalDateString();
         const lastActive = active.lastActiveDate;
 
-        // Se já acedeu hoje, não faz nada
         if (lastActive === todayStr) return;
 
         let newStreak = active.streakDays;
 
         if (!lastActive) {
-            // Primeiro acesso registado
             newStreak = 1;
         } else {
-            // Converter ambas as datas para objetos Date à meia-noite local
             const [lastYear, lastMonth, lastDay] = lastActive.split('-').map(Number);
             const [todayYear, todayMonth, todayDay] = todayStr.split('-').map(Number);
-
             const lastDate = new Date(lastYear, lastMonth - 1, lastDay);
             const currentDate = new Date(todayYear, todayMonth - 1, todayDay);
-
-            // Calcular diferença em dias
             const diffTime = currentDate.getTime() - lastDate.getTime();
             const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
             if (diffDays === 1) {
-                // Acessou ontem -> continua a sequência
                 newStreak = active.streakDays + 1;
             } else if (diffDays > 1) {
-                // Quebrou a sequência (passou mais de 1 dia sem aceder)
                 newStreak = 1;
             } else {
-                // diffDays < 0 (data do sistema alterada) ou caso estranho
                 newStreak = active.streakDays;
             }
         }
@@ -262,7 +257,6 @@ export class GamificationService {
                     lastActiveDate: todayStr
                 };
                 this.userProfile.set(updated);
-
                 this.profiles.update((list) =>
                     list.map((p) => (p.id === active.id ? updated : p))
                 );
@@ -366,7 +360,6 @@ export class GamificationService {
                     coins: newCoins
                 };
                 this.userProfile.set(updatedActive);
-
                 this.profiles.update((list) =>
                     list.map((p) => (p.id === active.id ? updatedActive : p))
                 );
@@ -398,7 +391,6 @@ export class GamificationService {
                     coins: newCoins
                 };
                 this.userProfile.set(updatedActive);
-
                 this.profiles.update((list) =>
                     list.map((p) => (p.id === active.id ? updatedActive : p))
                 );
