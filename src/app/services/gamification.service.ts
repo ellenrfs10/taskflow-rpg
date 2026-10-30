@@ -130,7 +130,7 @@ export class GamificationService {
                                 name: item.name,
                                 email: item.email || '',
                                 avatar: avatarDisplay,
-                                role: 'Filho(a)',
+                                role: item.profile_id_role_fkey,
                                 idAvatar: item.id_avatar,
                                 idRole: item.id_role,
                                 level: item.level || 1,
