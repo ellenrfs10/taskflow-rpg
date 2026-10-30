@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -7,6 +7,7 @@ import { SupabaseService } from '../../services/supabase-service';
 import { ThemeService } from '../../services/theme.service';
 import { GamificationService } from '../../services/gamification.service';
 import { Household } from '../../models/household.model';
+import { Subscription } from 'rxjs';
 
 @Component({
     selector: 'app-profile-setup',
@@ -15,7 +16,7 @@ import { Household } from '../../models/household.model';
     templateUrl: './profile-setup.component.html',
     styleUrls: ['./profile-setup.component.css']
 })
-export class ProfileSetupComponent implements OnInit {
+export class ProfileSetupComponent implements OnDestroy, OnInit {
     private fb = inject(FormBuilder);
     private householdService = inject(HouseholdService);
     private supabaseService = inject(SupabaseService);
@@ -50,6 +51,9 @@ export class ProfileSetupComponent implements OnInit {
 
     readonly isDarkMode = this.theme.isDark;
 
+    private subs: Subscription[] = [];
+    private householdSub?: Subscription;
+
     ngOnInit() {
         this.loadAvatars();
         this.loadRoles();
@@ -80,7 +84,7 @@ export class ProfileSetupComponent implements OnInit {
 
         if (error || !profile?.household_id) return;
 
-        this.householdService.getHouseholdById(profile.household_id).subscribe({
+        this.householdSub = this.householdService.getHouseholdById(profile.household_id).subscribe({
             next: (household) => {
                 this.householdInviteCode.set(household.invite_code);
                 this.householdName.set(household.name);
@@ -90,6 +94,11 @@ export class ProfileSetupComponent implements OnInit {
                 this.householdInviteCode.set(null);
             }
         });
+        this.subs.push(this.householdSub);
+    }
+
+    ngOnDestroy() {
+        this.subs.forEach((s) => s.unsubscribe());
     }
 
     async loadAvatars() {

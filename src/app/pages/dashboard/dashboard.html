@@ -30,16 +30,11 @@
 
         <p class="coins-badge">🪙 {{ user.coins }} Moedas de Ouro</p>
 
-        @if (inviteCode()) {
-          <div class="household-code">
-            <p class="household-label">🏠 Código da tua casa</p>
-            <div class="invite-code-box">
-              <span class="invite-code-text">{{ inviteCode() }}</span>
-              <button type="button" class="btn-copy-invite" (click)="copyInviteCode()">Copiar</button>
-            </div>
-            <p class="household-hint">Partilha este código para convidar alguém para a tua casa.</p>
-          </div>
-        }
+        <app-household-invite-code
+          [code]="inviteCode()"
+          label="Código da tua casa"
+          (codeCopied)="copyInviteCode()">
+        </app-household-invite-code>
 
         <a routerLink="/profile-setup" class="edit-profile-link">✏️ Editar perfil</a>
       </article>
@@ -59,6 +54,14 @@
         </li>
       </ul>
 
+      @if (closestDeadline()) {
+        <div class="deadline-card">
+          <span class="deadline-label">📅 Prazo mais próximo</span>
+          <strong class="deadline-title">{{ closestDeadline()!.title }}</strong>
+          <span class="deadline-date">{{ formatDate(closestDeadline()!.dueDate) }}</span>
+        </div>
+      }
+
       <nav class="actions" aria-label="Ações rápidas">
         <a routerLink="/missions" class="btn btn-primary">Ir para Quadro de Missões ⚔️</a>
         <a routerLink="/shop" class="btn btn-secondary">Visitar a Loja 🛍️</a>
@@ -71,14 +74,6 @@
     <article class="card" aria-labelledby="pending-heading">
       <h2 id="pending-heading">⏳ Missões Pendentes ({{ pendingTasks().length }})</h2>
 
-      @if (closestDeadline()) {
-        <div class="deadline-card">
-          <span class="deadline-label">📅 Prazo mais próximo</span>
-          <strong class="deadline-title">{{ closestDeadline()!.title }}</strong>
-          <span class="deadline-date">{{ formatDate(closestDeadline()?.dueDate) }}</span>
-        </div>
-      }
-
       @if (recentPendingTasks().length === 0) {
         <p class="empty-state">Não há missões pendentes. Bom trabalho!</p>
       } @else {
@@ -86,7 +81,15 @@
           @for (task of recentPendingTasks(); track task.id) {
             <li class="task-item">
               <span class="task-title">{{ task.title }}</span>
-              <span class="urgency-badge" [ngClass]="task.urgency">{{ task.urgency | titlecase }}</span>
+              <span class="urgency-badge" [ngClass]="task.urgency">
+                @switch (task.urgency) {
+                  @case ('baixa') { Baixa }
+                  @case ('media') { Média }
+                  @case ('alta') { Alta }
+                  @case ('critica') { Crítica }
+                  @default { Indefinida }
+                }
+              </span>
             </li>
           }
         </ul>

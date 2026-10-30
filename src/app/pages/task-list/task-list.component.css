@@ -142,6 +142,11 @@
   cursor: pointer;
 }
 
+.coop-text {
+  color: #6d28d9;
+  font-weight: 700;
+}
+
 /* Secção de Participantes Co-participados */
 .participants-section {
   border: 1px solid #e7e0ff;

@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { GamificationService } from '../../services/gamification.service';
@@ -6,15 +6,17 @@ import { TaskService } from '../../services/task.service';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { HouseholdService } from '../../services/household.service';
+import { HouseholdInviteCodeComponent } from '../../components/household-invite-code/household-invite-code.component';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, HouseholdInviteCodeComponent],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.css']
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnDestroy, OnInit {
   private gamificationService = inject(GamificationService);
   private taskService = inject(TaskService);
   private authService = inject(AuthService);
@@ -54,6 +56,7 @@ export class DashboardComponent implements OnInit {
     return Math.min(100, (profile.currentXp / profile.maxXp) * 100);
   });
 
+  // Tarefa com prazo mais próximo entre as pendentes
   readonly closestDeadline = computed(() => {
     const pending = this.pendingTasks();
     const withDate = pending.filter((t: any) => t.dueDate);
@@ -64,16 +67,19 @@ export class DashboardComponent implements OnInit {
     return sorted[0];
   });
 
+  // Último prémio resgatado da loja
   readonly lastPurchasedReward = signal<{ title: string; icon: string; redeemed_at: string } | null>(null);
 
   isDarkMode = this.themeService.isDark;
+
+  private householdSub?: Subscription;
 
   constructor() {
     effect(() => {
       const profile = this.userProfile();
       const householdId = profile?.household_id;
       if (householdId) {
-        this.householdService.getHouseholdById(householdId).subscribe({
+        this.householdSub = this.householdService.getHouseholdById(householdId).subscribe({
           next: (household) => {
             this.inviteCode.set(household.invite_code);
           },
@@ -91,6 +97,10 @@ export class DashboardComponent implements OnInit {
     this.taskService.loadTasks();
     this.gamificationService.loadProfiles();
     this.loadLastPurchasedReward();
+  }
+
+  ngOnDestroy() {
+    this.householdSub?.unsubscribe();
   }
 
   private async loadLastPurchasedReward() {

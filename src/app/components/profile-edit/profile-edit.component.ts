@@ -1,10 +1,10 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase-service';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
-import { from } from 'rxjs';
+import { from, Subscription } from 'rxjs';
 
 @Component({
     selector: 'app-profile-edit',
@@ -13,7 +13,7 @@ import { from } from 'rxjs';
     templateUrl: './profile-edit.component.html',
     styleUrls: ['./profile-edit.component.css']
 })
-export class ProfileEditComponent implements OnInit {
+export class ProfileEditComponent implements OnDestroy, OnInit {
     private supabaseService = inject(SupabaseService);
     private authService = inject(AuthService);
     private fb = inject(FormBuilder);
@@ -32,8 +32,14 @@ export class ProfileEditComponent implements OnInit {
         name: ['', [Validators.required, Validators.minLength(2)]]
     });
 
+    private subs: Subscription[] = [];
+
     ngOnInit() {
         this.loadCatalogsAndProfile();
+    }
+
+    ngOnDestroy() {
+        this.subs.forEach((s) => s.unsubscribe());
     }
 
     loadCatalogsAndProfile() {
@@ -46,23 +52,23 @@ export class ProfileEditComponent implements OnInit {
         }
 
         // 1. Carregar avatares
-        from(client.from('avatar').select('*')).subscribe((res: any) => {
+        this.subs.push(from(client.from('avatar').select('*')).subscribe((res: any) => {
             if (res.data) this.avatars.set(res.data);
-        });
+        }));
 
         // 2. Carregar roles
-        from(client.from('role').select('*')).subscribe((res: any) => {
+        this.subs.push(from(client.from('role').select('*')).subscribe((res: any) => {
             if (res.data) this.roles.set(res.data);
-        });
+        }));
 
         // 3. Carregar dados atuais do perfil do utilizador
-        from(client.from('profile').select('*').eq('id', user.id).single()).subscribe((res: any) => {
+        this.subs.push(from(client.from('profile').select('*').eq('id', user.id).single()).subscribe((res: any) => {
             if (res.data) {
                 this.profileForm.patchValue({ name: res.data.name });
                 this.selectedAvatarId.set(res.data.id_avatar);
                 this.selectedRoleId.set(res.data.id_role);
             }
-        });
+        }));
     }
 
     selectAvatar(id: number) { this.selectedAvatarId.set(id); }

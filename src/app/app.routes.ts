@@ -7,6 +7,7 @@ import { RegisterComponent } from './components/register/register.component';
 import { ProfileEditComponent } from './components/profile-edit/profile-edit.component';
 import { ProfileSetupComponent } from './pages/profile-setup/profile-setup.component';
 
+
 export const routes: Routes = [
     // Rota de Autenticação (Login / Registo)
     { path: 'auth', component: AuthComponent },
