@@ -42,10 +42,10 @@ export class TaskListComponent implements OnInit {
   urgencyLevels: TaskUrgency[] = ['baixa', 'media', 'alta', 'critica'];
 
   constructor() {
-    // Assim que as tarefas forem carregadas/atualizadas, tira o "A carregar"
+    
     effect(() => {
       const list = this.tasks();
-      // Só considera carregado quando já temos o array (mesmo que vazio)
+      
       if (Array.isArray(list)) {
         this.isLoading.set(false);
       }

@@ -62,7 +62,7 @@ export class ShopComponent {
     return list;
   });
 
-  // Métodos de Controlo dos Filtros
+  
   filterByCategory(cat: string): void {
     this.selectedCategory.set(cat);
   }
