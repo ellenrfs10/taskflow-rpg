@@ -37,14 +37,14 @@ export class FamilyManagementComponent {
 
         const { name, email, avatar, role } = this.memberForm.value;
 
-        // Envia os dados para o serviço gravar na tabela 'profile' do Supabase
+       
         this.gamificationService.addProfile(name, email, avatar, role);
 
         this.memberForm.reset({
             name: '',
             email: 'usuario@taskflow.com',
             avatar: '🧙‍♂️',
-            role: 'Filho(a)'
+            role: ''
         });
     }
 }
