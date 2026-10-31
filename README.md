@@ -54,13 +54,6 @@ A aplicação fica em http://localhost:4200. Para correr os testes: `npm test`.
 
 ## Variáveis de ambiente e deploy
 
-O ficheiro `src/environments/environment.ts` **não está no repositório** (`.gitignore`).
-No deploy é gerado pelo workflow do GitHub Actions a partir dos *secrets* do repositório:
-
-| Secret | Conteúdo |
-|---|---|
-| `SUPABASE_URL` | URL do projeto Supabase |
-| `SUPABASE_KEY` | chave pública (publishable/anon) |
 
 Cada *push* para `main` faz o build de produção e publica no GitHub Pages
 (`.github/workflows`). A chave pública só dá acesso ao que as regras de segurança
