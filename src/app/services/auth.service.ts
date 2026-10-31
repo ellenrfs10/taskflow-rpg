@@ -1,7 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { SupabaseService } from './supabase-service';
-import { from } from 'rxjs';
 
 export interface AuthUser {
     id: string;
@@ -12,103 +11,93 @@ export interface AuthUser {
     providedIn: 'root'
 })
 export class AuthService {
-    private supabaseService = inject(SupabaseService);
     private router = inject(Router);
-    private client = this.supabaseService.supabaseClient;
+    private client = inject(SupabaseService).supabaseClient;
 
     readonly currentUser = signal<AuthUser | null>(null);
+
+    private readonly publicUrls = ['/', '/auth', '/register'];
 
     constructor() {
         this.initAuth();
     }
 
-    private initAuth() {
-        this.client.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) {
-                this.currentUser.set({
-                    id: session.user.id,
-                    email: session.user.email || ''
-                });
-                this.checkProfileCompletion(session.user.id);
-            } else {
-                this.currentUser.set(null);
+    private initAuth(): void {
+        // Cópia de segurança para versões do supabase-js que não emitem INITIAL_SESSION
+        this.client.auth.getSession().then(({ data }) => {
+            const user = data.session?.user;
+            if (user && !this.currentUser()) {
+                this.currentUser.set({ id: user.id, email: user.email ?? '' });
             }
         });
 
-        this.client.auth.onAuthStateChange((_event, session) => {
-            if (session?.user) {
-                this.currentUser.set({
-                    id: session.user.id,
-                    email: session.user.email || ''
-                });
-                this.checkProfileCompletion(session.user.id);
-            } else {
-                this.currentUser.set(null);
-                const currentUrl = this.router.url;
-                if (currentUrl !== '/auth' && currentUrl !== '/register') {
-                    this.router.navigate(['/auth'], { replaceUrl: true });
-                }
+        this.client.auth.onAuthStateChange((event, session) => {
+            const user = session?.user;
+            this.currentUser.set(user ? { id: user.id, email: user.email ?? '' } : null);
+
+            // Ao abrir a app com sessão, só garante que o perfil está completo
+            if (user && event === 'INITIAL_SESSION') {
+                setTimeout(() => void this.checkProfileCompletion(user.id, false), 0);
+            }
+
+            if (!user && event === 'SIGNED_OUT' && !this.isPublicUrl()) {
+                this.router.navigate(['/auth'], { replaceUrl: true });
             }
         });
     }
 
-    private checkProfileCompletion(userId: string) {
-        const promise = (this.client as any)
+    private isPublicUrl(): boolean {
+        return this.publicUrls.includes(this.router.url.split('?')[0]);
+    }
+
+    /**
+     * Perfil incompleto -> /profile-setup.
+     * Perfil completo -> /dashboard, mas só logo após o login (redirectIfComplete).
+     */
+    private async checkProfileCompletion(userId: string, redirectIfComplete: boolean): Promise<void> {
+        const { data, error } = await (this.client as any)
             .from('profile')
             .select('profile_completed')
             .eq('id', userId)
             .maybeSingle();
 
-        from(promise).subscribe({
-            next: (res: any) => {
-                if (res.error) return;
-                const completed = res.data?.profile_completed === true;
-                const currentUrl = this.router.url;
-
-                // Se o perfil JÁ ESTÁ completo -> vai sempre para o dashboard
-                if (completed) {
-                    if (currentUrl === '/profile-setup' || currentUrl === '/auth' || currentUrl === '/register' || currentUrl === '/') {
-                        this.router.navigate(['/dashboard'], { replaceUrl: true });
-                    }
-                    return;
-                }
-
-                // Se o perfil NÃO ESTÁ completo -> só redireciona para o setup
-                // Evita redirecionar em loop caso já esteja nessa página
-                if (!completed && currentUrl !== '/profile-setup') {
-                    this.router.navigate(['/profile-setup'], { replaceUrl: true });
-                    return;
-                }
-            },
-            error: () => {
-                // Em caso de erro, por segurança, não força o setup para contas que já possam existir
-                const currentUrl = this.router.url;
-                if (currentUrl === '/auth' || currentUrl === '/register' || currentUrl === '/') {
-                    this.router.navigate(['/dashboard'], { replaceUrl: true });
-                }
+        if (error) {
+            // Em caso de erro não força o setup a contas que já existam
+            if (redirectIfComplete && this.isPublicUrl()) {
+                await this.router.navigate(['/dashboard'], { replaceUrl: true });
             }
-        });
+            return;
+        }
+
+        if (data?.profile_completed === true) {
+            if (redirectIfComplete && this.isPublicUrl()) {
+                await this.router.navigate(['/dashboard'], { replaceUrl: true });
+            }
+            return;
+        }
+
+        if (this.router.url.split('?')[0] !== '/profile-setup') {
+            await this.router.navigate(['/profile-setup'], { replaceUrl: true });
+        }
     }
 
     async signIn(email: string, password: string): Promise<void> {
-        const { error, data } = await this.client.auth.signInWithPassword({ email, password });
+        const { data, error } = await this.client.auth.signInWithPassword({ email, password });
         if (error) throw error;
         if (data.user) {
-            this.checkProfileCompletion(data.user.id);
+            await this.checkProfileCompletion(data.user.id, true);
         }
     }
 
-    async signUp(email: string, password: string): Promise<void> {
-        const { error, data } = await this.client.auth.signUp({
+    /** Devolve true se a conta já ficou com sessão (ou seja, sem confirmação de e-mail). */
+    async signUp(email: string, password: string, name: string): Promise<boolean> {
+        const { data, error } = await this.client.auth.signUp({
             email,
             password,
-            options: { data: {} }
+            options: { data: { name } }
         });
         if (error) throw error;
-        if (data.user) {
-            // Após registo, criamos o perfil com profile_completed: false para forçar o setup
-            setTimeout(() => this.checkProfileCompletion(data.user!.id), 400);
-        }
+        return !!data.session;
     }
 
     async signOut(): Promise<void> {
@@ -117,6 +106,4 @@ export class AuthService {
         this.currentUser.set(null);
         await this.router.navigate(['/auth'], { replaceUrl: true });
     }
-
-    
 }

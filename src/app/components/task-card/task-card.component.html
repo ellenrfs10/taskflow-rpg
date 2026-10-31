@@ -1,52 +1,54 @@
-<li [class.completed]="task.completed" class="task-item">
+<article class="task-item" [class.completed]="task.completed">
   <div class="task-info">
-    <div class="task-header">
-      <span class="category-badge">{{ task.category | titlecase }}</span>
-      <span class="urgency-badge" [ngClass]="task.urgency">
-        {{ task.urgency | titlecase }}
-      </span>
-      <span *ngIf="task.isCooperative" class="coop-badge">🤝 Co-op</span>
-    </div>
+    <header class="task-header">
+      <span class="category-badge">{{ categoryLabel }}</span>
+      <span class="urgency-badge" [class]="task.urgency">{{ urgencyLabel }}</span>
+      @if (task.isCooperative) {
+        <span class="coop-badge">🤝 Co-op</span>
+      }
+    </header>
 
-    <div *ngIf="task.isCooperative" class="invited-by">
-      <small>Convidado por <strong>{{ inviterName }}</strong></small>
-    </div>
-
-    @if (timeLeft) {
-      <div class="timer-badge" [class.warning]="isWarning" [class.critical]="isCritical" [class.expired]="isExpired">
-        <span aria-hidden="true">⏰</span>
-        <span>{{ timeLeft }}</span>
-      </div>
+    @if (isInvited) {
+      <p class="invited-by">
+        <small>Convidado por <strong>{{ inviterName }}</strong></small>
+      </p>
     }
 
-    <h4 class="task-title">{{ task.title }}</h4>
-    <p class="task-desc" *ngIf="task.description">{{ task.description }}</p>
+    @if (timeLeft) {
+      <p class="timer-badge" [class.warning]="isWarning" [class.critical]="isCritical" [class.expired]="isExpired">
+        <span aria-hidden="true">⏰</span>
+        <span>{{ timeLeft }}</span>
+      </p>
+    }
 
-    <div class="task-rewards">
+    <h3 class="task-title">{{ task.title }}</h3>
+
+    @if (task.description) {
+      <p class="task-desc">{{ task.description }}</p>
+    }
+
+    <p class="task-rewards">
       <span class="reward-xp">⭐ +{{ task.xpReward }} XP</span>
       <span class="reward-coins">🪙 +{{ task.coinReward }} Moedas</span>
-    </div>
+    </p>
   </div>
 
   <div class="task-actions">
-    <button 
-      *ngIf="!task.completed" 
-      (click)="onComplete()" 
-      class="btn btn-success"
-    >
-      ✓ Concluir
-    </button>
+    @if (!task.completed) {
+      <button type="button" class="btn btn-success" (click)="onComplete()">✓ Concluir</button>
+    } @else {
+      <span class="completed-label">🎉 Concluída!</span>
+    }
 
-    <span *ngIf="task.completed" class="completed-label">
-      🎉 Concluída!
-    </span>
-
-    <button 
-      (click)="onDelete()" 
-      class="btn btn-danger" 
-      title="Eliminar missão"
-    >
-      🗑️
-    </button>
+    @if (isOwner) {
+      <button
+        type="button"
+        class="btn btn-danger"
+        (click)="onDelete()"
+        [attr.aria-label]="'Eliminar missão ' + task.title"
+      >
+        <span aria-hidden="true">🗑️</span>
+      </button>
+    }
   </div>
-</li>
+</article>

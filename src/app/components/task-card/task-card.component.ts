@@ -1,16 +1,15 @@
-import { Component, Input, Output, EventEmitter, inject, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Task } from '../../models/task.model';
+import { Component, EventEmitter, inject, Input, OnChanges, OnDestroy, OnInit, Output } from '@angular/core';
+import { CATEGORY_LABELS, Task, URGENCY_LABELS } from '../../models/task.model';
 import { GamificationService } from '../../services/gamification.service';
 
 @Component({
   selector: 'app-task-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './task-card.component.html',
   styleUrl: './task-card.component.css'
 })
-export class TaskCardComponent implements OnInit, OnDestroy {
+export class TaskCardComponent implements OnInit, OnChanges, OnDestroy {
   private gamificationService = inject(GamificationService);
 
   @Input({ required: true }) task!: Task;
@@ -27,9 +26,12 @@ export class TaskCardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.updateTimer();
-    this.intervalId = setInterval(() => {
-      this.updateTimer();
-    }, 60000);
+    this.intervalId = setInterval(() => this.updateTimer(), 60000);
+  }
+
+  // Se o pai enviar uma missão atualizada, o temporizador acompanha logo
+  ngOnChanges(): void {
+    this.updateTimer();
   }
 
   ngOnDestroy(): void {
@@ -39,11 +41,37 @@ export class TaskCardComponent implements OnInit, OnDestroy {
     }
   }
 
+  get urgencyLabel(): string {
+    return URGENCY_LABELS[this.task.urgency] ?? this.task.urgency;
+  }
+
+  get categoryLabel(): string {
+    return CATEGORY_LABELS[this.task.category] ?? this.task.category;
+  }
+
+  /** Missões antigas sem dono contam como minhas. */
+  get isOwner(): boolean {
+    const owner = this.task.profile_id;
+    return !owner || owner === this.gamificationService.userProfile().id;
+  }
+
+  /** "Convidado por" só faz sentido em missões cooperativas criadas por outra pessoa. */
+  get isInvited(): boolean {
+    return this.task.isCooperative && !this.isOwner;
+  }
+
+  get inviterName(): string {
+    const profiles = this.gamificationService.profiles();
+    const inviter = profiles.find((p) => p.id === this.task.profile_id);
+    return inviter?.name || 'Alguém';
+  }
+
   private updateTimer(): void {
     const taskAny = this.task as any;
     const dueDateStr = taskAny?.dueDate || taskAny?.due_date;
 
-    if (!dueDateStr) {
+    // Sem prazo, ou já concluída: não há contagem decrescente
+    if (!dueDateStr || this.task.completed) {
       this.timeLeft = '';
       this.isWarning = false;
       this.isCritical = false;
@@ -72,41 +100,24 @@ export class TaskCardComponent implements OnInit, OnDestroy {
     const hoursLeft = totalHours % 24;
     const minutesLeft = totalMinutes % 60;
 
-    // Lógica de cores baseada no tempo restante
     if (totalHours < 5) {
-      // Menos de 5 horas -> Vermelho
-      this.isCritical = true;
+      this.isCritical = true; // menos de 5 horas: vermelho
       this.isWarning = false;
-    } else if (totalDays < 1 && totalHours >= 5) {
-      // Menos de 24 horas mas mais de 5 -> Amarelo
-      this.isCritical = false;
+    } else if (totalDays < 1) {
+      this.isCritical = false; // menos de 24 horas: amarelo
       this.isWarning = true;
     } else {
-      // Mais de 24 horas -> Normal
       this.isCritical = false;
       this.isWarning = false;
     }
 
-    // Formatação do tempo restante
     if (totalDays >= 1) {
       this.timeLeft = `Faltam ${totalDays} dia(s) ${hoursLeft}h ${minutesLeft}m`;
-      return;
-    }
-
-    if (totalHours >= 1) {
+    } else if (totalHours >= 1) {
       this.timeLeft = `Faltam ${totalHours}h ${minutesLeft}m`;
-      return;
+    } else {
+      this.timeLeft = `Faltam ${minutesLeft}m`;
     }
-
-    this.timeLeft = `Faltam ${minutesLeft}m`;
-  }
-
-  get inviterName(): string {
-    const profiles = this.gamificationService.profiles();
-    if (!(this.task as any)?.profile_id) return 'Alguém';
-
-    const inviter = profiles.find((p: any) => p.id === (this.task as any).profile_id);
-    return inviter?.name || 'Alguém';
   }
 
   onComplete(): void {

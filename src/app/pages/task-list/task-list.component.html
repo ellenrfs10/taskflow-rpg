@@ -1,11 +1,15 @@
-<main class="task-dashboard">
-  <!-- Secção de Criação de Missões -->
+<section class="task-dashboard">
+  <h1 class="sr-only">Quadro de Missões</h1>
+
   <section class="task-creation-section" aria-labelledby="form-title">
     <header>
       <h2 id="form-title">Criar Nova Missão</h2>
     </header>
 
-    <form [formGroup]="taskForm" (ngSubmit)="createTask()" class="task-form">
+    <form [formGroup]="taskForm" (ngSubmit)="createTask()" class="task-form" novalidate>
+      @let title = taskForm.controls.title;
+      @let description = taskForm.controls.description;
+
       <div class="form-group">
         <label for="task-title">Título da Missão</label>
         <input
@@ -15,13 +19,24 @@
           placeholder="Ex: Organizar o escritório"
           autocomplete="off"
           class="form-control"
+          [attr.aria-invalid]="title.invalid && title.touched"
+          aria-describedby="title-error"
         />
+        @if (title.touched && title.invalid) {
+          <small id="title-error" class="form-error-text" role="alert">
+            @if (title.hasError('required')) {
+              O título da missão é obrigatório.
+            } @else if (title.hasError('minlength')) {
+              O título precisa de pelo menos 3 caracteres.
+            }
+          </small>
+        }
       </div>
 
       <div class="form-group">
         <label for="task-description">
           Descrição
-          <span class="char-count">({{ taskForm.get('description')?.value?.length || 0 }}/50)</span>
+          <span class="char-count">({{ description.value?.length ?? 0 }}/50)</span>
         </label>
         <textarea
           id="task-description"
@@ -37,9 +52,9 @@
         <div class="form-group">
           <label for="task-urgency">Urgência</label>
           <select id="task-urgency" formControlName="urgency" class="form-control">
-            <option *ngFor="let level of urgencyLevels" [value]="level">
-              {{ level | titlecase }}
-            </option>
+            @for (level of urgencyLevels; track level) {
+              <option [value]="level">{{ urgencyLabels[level] }}</option>
+            }
           </select>
         </div>
 
@@ -55,128 +70,136 @@
         </div>
       </div>
 
-      <!-- Opção de Tarefa Co-participada -->
-      <fieldset class="form-group checkbox-fieldset">
-        <legend class="sr-only">Tipo de Tarefa</legend>
+      <p class="form-group checkbox-fieldset">
         <label class="checkbox-label coop-label" for="is-cooperative">
-          <input
-            id="is-cooperative"
-            type="checkbox"
-            formControlName="isCooperative"
-          />
+          <input id="is-cooperative" type="checkbox" formControlName="isCooperative" />
           <span class="coop-text">🤝 Tarefa Co-participada</span>
         </label>
-      </fieldset>
+      </p>
 
-      <!-- Seleção de Participantes com Buscador (Condicional) -->
-      <fieldset *ngIf="taskForm.get('isCooperative')?.value" class="participants-section" aria-labelledby="participants-legend">
-        <legend id="participants-legend" class="participants-title">Selecionar Participantes</legend>
-        
-        <div class="form-group member-search-group">
-          <input
-            type="text"
-            [(ngModel)]="memberSearchTerm"
-            [ngModelOptions]="{standalone: true}"
-            placeholder="🔍 Procurar membro por nome..."
-            class="form-control member-search-input"
-          />
-        </div>
+      @if (taskForm.controls.isCooperative.value) {
+        <fieldset class="participants-section">
+          <legend class="participants-title">Selecionar Participantes</legend>
 
-        <ul class="participants-list" role="list">
-          <li *ngFor="let member of filteredMembers" class="participant-item">
-            <label [attr.for]="'member-' + member.id" class="checkbox-label">
-              <input
-                [id]="'member-' + member.id"
-                type="checkbox"
-                (change)="onParticipantToggle(member, $event)"
-              />
-              <span>{{ member.name }}</span>
-              <small class="member-role">({{ member.role || 'Membro' }})</small>
-            </label>
-          </li>
-          <li *ngIf="filteredMembers.length === 0" class="no-members-found">
-            <small>Nenhum membro encontrado.</small>
-          </li>
-        </ul>
-      </fieldset>
+          <div class="form-group member-search-group">
+            <label for="member-search" class="sr-only">Procurar membro por nome</label>
+            <input
+              id="member-search"
+              type="text"
+              [(ngModel)]="memberSearchTerm"
+              [ngModelOptions]="{ standalone: true }"
+              placeholder="🔍 Procurar membro por nome..."
+              class="form-control member-search-input"
+            />
+          </div>
 
-      <button type="submit" [disabled]="taskForm.invalid" class="btn-submit">
-        Criar Missão
-      </button>
+          <ul class="participants-list">
+            @for (member of filteredMembers(); track member.id) {
+              <li class="participant-item">
+                <label class="checkbox-label" [attr.for]="'member-' + member.id">
+                  <input
+                    #participant
+                    [id]="'member-' + member.id"
+                    type="checkbox"
+                    [checked]="selectedParticipantIds().includes(member.id)"
+                    (change)="toggleParticipant(member.id, participant.checked)"
+                  />
+                  <span>{{ member.name }}</span>
+                  <small class="member-role">({{ member.role || 'Membro' }})</small>
+                </label>
+              </li>
+            } @empty {
+              <li class="no-members-found">
+                <small>Nenhum membro encontrado.</small>
+              </li>
+            }
+          </ul>
+        </fieldset>
+      }
+
+      <button type="submit" [disabled]="taskForm.invalid" class="btn-submit">Criar Missão</button>
     </form>
   </section>
 
-  <!-- Mensagem de Erro -->
-  <aside *ngIf="errorMessage" class="error-banner" role="alert">
-    <p>{{ errorMessage }}</p>
-  </aside>
+  @if (errorMessage()) {
+    <aside class="error-banner" role="alert">
+      <p>{{ errorMessage() }}</p>
+    </aside>
+  }
 
-  <!-- Convites pendentes para tarefas em conjunto -->
-  <section class="task-list-section" aria-labelledby="invites-title" *ngIf="pendingInvites.length > 0">
-    <header>
-      <h2 id="invites-title">Convites para tarefas em conjunto ({{ pendingInvites.length }})</h2>
-    </header>
+  @if (pendingInvites().length > 0) {
+    <section class="task-list-section" aria-labelledby="invites-title">
+      <header>
+        <h2 id="invites-title">Convites para tarefas em conjunto ({{ pendingInvites().length }})</h2>
+      </header>
 
-    <ul class="task-grid" role="list">
-      <li *ngFor="let invite of pendingInvites" class="task-item">
-        <div class="invite-card">
-          <div class="invite-card-header">
-            <span class="coop-badge">🤝 Co-op</span>
-            <span class="urgency-badge" [ngClass]="invite.urgency">{{ invite.urgency | titlecase }}</span>
-          </div>
-          <h3 class="invite-title">{{ invite.title }}</h3>
-          <p class="invite-desc" *ngIf="invite.description">{{ invite.description }}</p>
-          <p class="invite-from">Convidado por <strong>{{ invite.inviterName }}</strong></p>
-          <div class="invite-rewards">
-            <span>⭐ +{{ invite.xpReward }} XP</span>
-            <span>🪙 +{{ invite.coinReward }} Moedas</span>
-          </div>
-          <button class="btn-accept-invite" (click)="acceptInvite(invite)">Aceitar convite</button>
-        </div>
-      </li>
-    </ul>
-  </section>
+      <ul class="task-grid">
+        @for (invite of pendingInvites(); track invite.task.id) {
+          <li class="task-item">
+            <article class="invite-card">
+              <header class="invite-card-header">
+                <span class="coop-badge">🤝 Co-op</span>
+                <span class="urgency-badge" [class]="invite.task.urgency">{{ urgencyLabel(invite.task.urgency) }}</span>
+              </header>
+              <h3 class="invite-title">{{ invite.task.title }}</h3>
+              @if (invite.task.description) {
+                <p class="invite-desc">{{ invite.task.description }}</p>
+              }
+              <p class="invite-from">Convidado por <strong>{{ invite.inviterName }}</strong></p>
+              <p class="invite-rewards">
+                <span>⭐ +{{ invite.task.xpReward }} XP</span>
+                <span>🪙 +{{ invite.task.coinReward }} Moedas</span>
+              </p>
+              <button type="button" class="btn-accept-invite" (click)="acceptInvite(invite.task)">Aceitar convite</button>
+            </article>
+          </li>
+        }
+      </ul>
+    </section>
+  }
 
-  <!-- Estado de Carregamento -->
-  <div *ngIf="isLoading()" class="loading-state" aria-live="polite">
-    <p>A carregar missões...</p>
-  </div>
+  @if (isLoading()) {
+    <p class="loading-state" role="status">A carregar missões...</p>
+  } @else if (loadError()) {
+    <aside class="error-banner" role="alert">
+      <p>
+        {{ loadError() }}
+        <button type="button" class="btn" (click)="reload()">Tentar novamente</button>
+      </p>
+    </aside>
+  } @else {
+    <section class="task-list-section" aria-labelledby="pending-title">
+      <header>
+        <h2 id="pending-title">Missões Pendentes ({{ pendingTasks().length }})</h2>
+      </header>
 
-  <!-- Secção: Missões Pendentes -->
-  <section class="task-list-section" aria-labelledby="pending-title" *ngIf="!isLoading()">
-    <header>
-      <h2 id="pending-title">Missões Pendentes ({{ pendingTasks.length }})</h2>
-    </header>
+      @if (pendingTasks().length === 0) {
+        <p class="empty-state">Não há missões pendentes de momento. Boa!</p>
+      } @else {
+        <ul class="task-grid">
+          @for (task of pendingTasks(); track task.id) {
+            <li class="task-item">
+              <app-task-card [task]="task" (complete)="completeTask($event)" (delete)="deleteTask($event)" />
+            </li>
+          }
+        </ul>
+      }
+    </section>
 
-    <p *ngIf="pendingTasks.length === 0" class="empty-state">
-      Não há missões pendentes de momento. Boa!
-    </p>
+    @if (completedTasks().length > 0) {
+      <section class="task-list-section completed-section" aria-labelledby="completed-title">
+        <header>
+          <h2 id="completed-title">Missões Concluídas ({{ completedTasks().length }})</h2>
+        </header>
 
-    <ul class="task-grid" role="list" *ngIf="pendingTasks.length > 0">
-      <li *ngFor="let task of pendingTasks" class="task-item">
-        <app-task-card
-          [task]="task"
-          (complete)="completeTask($event)"
-          (delete)="deleteTask($event)"
-        ></app-task-card>
-      </li>
-    </ul>
-  </section>
-
-  <!-- Secção: Missões Concluídas -->
-  <section class="task-list-section completed-section" aria-labelledby="completed-title" *ngIf="!isLoading() && completedTasks.length > 0">
-    <header>
-      <h2 id="completed-title">Missões Concluídas ({{ completedTasks.length }})</h2>
-    </header>
-
-    <ul class="task-grid" role="list">
-      <li *ngFor="let task of completedTasks" class="task-item completed">
-        <app-task-card
-          [task]="task"
-          (complete)="completeTask($event)"
-          (delete)="deleteTask($event)"
-        ></app-task-card>
-      </li>
-    </ul>
-  </section>
-</main>
+        <ul class="task-grid">
+          @for (task of completedTasks(); track task.id) {
+            <li class="task-item completed">
+              <app-task-card [task]="task" (complete)="completeTask($event)" (delete)="deleteTask($event)" />
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</section>

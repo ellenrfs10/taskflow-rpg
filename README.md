@@ -1,90 +1,67 @@
-# Taskflow RPG
+# TaskFlow RPG – Gestor Doméstico
 
-Taskflow RPG é um sistema de gestão de tarefas gamificado desenvolvido em Angular + Supabase. Os usuários criam perfis de herói, gerenciam missões (tarefas), ganham XP e moedas, e podem jogar sozinhos ou em "casas" (households) compartilhadas com amigos/família via código de convite.
+Aplicação web SPA em **Angular** que transforma as tarefas domésticas num jogo: cada missão
+concluída dá XP e moedas, e as moedas trocam-se por prémios definidos pela própria casa.
+
+**Aplicação publicada:** https://github.com/ellenrfs10/taskflow-rpg
+**Link do github pages:** https://ellenrfs10.github.io/taskflow-rpg/auth
 
 ## Funcionalidades
 
-- **Autenticação**: Login e registo com Supabase Auth
-- **Perfil do herói**: Escolha de nome, classe (role) e avatar
-- **Modos de jogo**:
-  - *Sozinho*: sem casa, perfil individual
-  - *Juntos*: entrar numa casa existente via código de convite ou criar a sua própria casa
-- **Households (Casas)**: Criar casa, gerar código de convite único (6 carateres alfanuméricos), entrar com código, sair da casa, expulsar membros (apenas o criador)
-- **Missões**: Criar, listar, concluir e filtrar tarefas pendentes/concluídas
-- **Gamificação**: XP, níveis, moedas, sequência de dias ativos (streak)
-- **Loja**: Resgatar recompensas com moedas
-- **Dashboard**: Resumo do jogador, prazo mais próximo, última recompensa resgatada, código da casa para partilhar
+- Registo e login com **Supabase Auth**, e configuração do perfil (nome, classe e avatar).
+- **Casas**: jogar sozinho, criar uma casa ou entrar numa com um código de convite de 6 caracteres.
+- **Missões**: criar (formulário reativo com validação), concluir, eliminar, com urgência, prazo
+  e temporizador no cartão.
+- **Missões em conjunto**: convidar membros da casa, que aceitam o convite antes de a missão
+  aparecer na lista deles.
+- **Gamificação**: XP, nível, moedas e sequência de dias seguidos.
+- **Loja de recompensas**: filtrar por categoria, ordenar por preço, criar, eliminar e resgatar prémios.
+- **Dashboard** com o resumo do jogador, as missões pendentes e concluídas e o último prémio resgatado.
 
-**Observação:** Para conseguir convidar membros para a sua casa, ambos precisam estar logados.
+## Tecnologias
 
-## Stack tecnológica
+Angular (componentes standalone, signals, `@if`/`@for`/`@switch`), TypeScript, Reactive Forms,
+Angular Router (com guards), `HttpClient`, RxJS, Supabase, GitHub Actions e GitHub Pages.
 
-- [Angular 22](https://angular.io/) (standalone components, signals, control flow `@if`/`@for`/`@switch`)
-- [Supabase](https://supabase.com/) (Auth, Database, Realtime)
-- [RxJS](https://rxjs.dev/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Vitest](https://vitest.dev/) (testes unitários)
+## Fonte de dados
 
-## Requisitos do projeto
+- **Supabase** (PostgreSQL + Auth). A loja de prémios consome a **API REST do Supabase**
+  (`/rest/v1/rewards`) com `HttpClient` num service, com a resposta tipada (`RewardRow`),
+  `Observable` + `subscribe()` e estados de carregamento e de erro.
+- O resto das operações usa o cliente `@supabase/supabase-js`.
 
-- [x] `@switch` no template do dashboard (badges de urgência)
-- [x] Componente filho com `@Input`, `@Output` e `EventEmitter` (`app-household-invite-code`)
-- [x] GitHub Actions + GitHub Pages (`.github/workflows/deploy.yml`)
-- [x] Chave Supabase em `src/environments/environment.ts`
-- [x] Limpeza de subscrições com `OnDestroy` (`dashboard`, `profile-setup`, `profile-edit`)
-- [x] README.md com documentação do projeto
+## Estrutura
 
-## Configuração do Supabase
-
-Variáveis de ambiente em `src/environments/environment.ts`:
-
-```ts
-export const environment = {
-    production: false,
-    supabaseUrl: 'https://seu-projeto.supabase.co',
-    supabaseKey: 'sua-chave-publica'
-};
+```
+src/app
+├── components/   componentes reutilizáveis (task-card, household-invite-code, auth, profile-edit)
+├── pages/        páginas ligadas às rotas (dashboard, task-list, shop, profile-setup)
+├── services/     acesso aos dados (task, shop, household, gamification, auth, catalog)
+├── guards/       proteção das rotas privadas
+└── models/       interfaces TypeScript (Task, Reward, Household...)
 ```
 
-Tabelas necessárias no Supabase: `profiles`, `households`, `tasks`, `task_subtasks`, `rewards`, `user_rewards`, `avatar`, `role`.
-
-## Desenvolvimento
+## Executar localmente
 
 ```bash
-# Instalar dependências
 npm install
-
-# Servidor de desenvolvimento
+cp src/environments/environment.example.ts src/environments/environment.ts
+# editar src/environments/environment.ts com o URL e a chave pública (publishable) do Supabase
 npm start
-
-# Build de produção
-npm run build
-
-# Build para GitHub Pages
-npm run build -- --base-href=/taskflow-rpg/
-
-# Testes
-npm test
 ```
 
-## Estrutura do projeto
+A aplicação fica em http://localhost:4200. Para correr os testes: `npm test`.
 
-```
-src/
-  app/
-    components/          # Componentes independentes (profile-edit, household-invite-code, etc.)
-    pages/               # Páginas (dashboard, profile-setup, task-list, shop, auth)
-    services/            # Serviços (household, gamification, task, auth, supabase-service)
-    models/              # Interfaces TypeScript (profile, task, household, reward)
-  database/
-    supabase.ts          # Tipos TypeScript gerados do Supabase
-  environments/          # Variáveis de ambiente
-```
+## Variáveis de ambiente e deploy
 
-## Deploy
+O ficheiro `src/environments/environment.ts` **não está no repositório** (`.gitignore`).
+No deploy é gerado pelo workflow do GitHub Actions a partir dos *secrets* do repositório:
 
-O deploy é automático via GitHub Actions para GitHub Pages ao fazer push no branch `main`. O workflow builda o projeto com `--base-href=/taskflow-rpg/` e publica na branch `gh-pages`.
+| Secret | Conteúdo |
+|---|---|
+| `SUPABASE_URL` | URL do projeto Supabase |
+| `SUPABASE_KEY` | chave pública (publishable/anon) |
 
-## Autores
-
-Projeto desenvolvido para apresentação escolar — entrega 01/11/26, apresentação 02/11/26 às 09:00.
+Cada *push* para `main` faz o build de produção e publica no GitHub Pages
+(`.github/workflows`). A chave pública só dá acesso ao que as regras de segurança
+(Row Level Security) do Supabase permitirem.

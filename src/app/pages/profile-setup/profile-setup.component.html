@@ -1,5 +1,5 @@
-<main class="setup-page">
-  <section class="setup-section">
+<section class="setup-page">
+  <div class="setup-section">
     <article class="setup-card">
       <header class="setup-header">
         <h1 class="setup-title">Configurar o teu Perfil</h1>
@@ -8,78 +8,146 @@
 
       @if (!showInviteCode()) {
         <form class="setup-form" [formGroup]="setupForm" (ngSubmit)="finishSetup()" novalidate>
+          @let nameCtrl = setupForm.get('name')!;
+
           <fieldset class="setup-fieldset">
             <legend class="setup-legend">Identidade do Herói</legend>
             <div class="form-group">
               <label class="form-label" for="name">Nome do Herói</label>
-              <input id="name" class="form-control" formControlName="name" placeholder="Ex: Arthur Pendragon" autocomplete="name" />
+              <input
+                id="name"
+                class="form-control"
+                formControlName="name"
+                placeholder="Ex: Arthur Pendragon"
+                autocomplete="name"
+                [attr.aria-invalid]="nameCtrl.invalid && nameCtrl.touched"
+                aria-describedby="name-error"
+              />
+              @if (nameCtrl.touched && nameCtrl.invalid) {
+                <small id="name-error" class="form-error-text" role="alert">
+                  @if (nameCtrl.hasError('required')) {
+                    O nome do herói é obrigatório.
+                  } @else if (nameCtrl.hasError('minlength')) {
+                    O nome precisa de pelo menos 2 caracteres.
+                  }
+                </small>
+              }
             </div>
           </fieldset>
 
           <fieldset class="setup-fieldset">
             <legend class="setup-legend">Personalização</legend>
 
-            <div class="selection-block">
-              <p class="selection-title">1) Escolhe a tua Classe</p>
-              <div class="role-grid">
+            <section class="selection-block" aria-labelledby="role-title">
+              <h2 id="role-title" class="selection-title">1) Escolhe a tua Classe</h2>
+              <ul class="role-grid">
                 @for (role of roles(); track role.id) {
-                  <button type="button" class="role-option" [class.selected]="selectedRoleId() === role.id" (click)="selectRole(role.id)">
-                    <span class="role-icon">🛡️</span>
-                    <span class="role-name">{{ role.name }}</span>
-                  </button>
+                  <li>
+                    <button
+                      type="button"
+                      class="role-option"
+                      [class.selected]="selectedRoleId() === role.id"
+                      [attr.aria-pressed]="selectedRoleId() === role.id"
+                      (click)="selectRole(role.id)"
+                    >
+                      <span class="role-icon" aria-hidden="true">🛡️</span>
+                      <span class="role-name">{{ role.name }}</span>
+                    </button>
+                  </li>
                 }
-              </div>
-            </div>
+              </ul>
+            </section>
 
-            <div class="selection-block">
-              <p class="selection-title">2) Escolhe o teu Avatar</p>
-              <div class="avatar-grid">
+            <section class="selection-block" aria-labelledby="avatar-title">
+              <h2 id="avatar-title" class="selection-title">2) Escolhe o teu Avatar</h2>
+              <ul class="avatar-grid">
                 @for (avatar of avatars(); track avatar.id) {
-                  <button type="button" class="avatar-option" [class.selected]="selectedAvatarId() === avatar.id" (click)="selectAvatar(avatar.id)">
-                    <img [src]="avatar.image_url" [alt]="avatar.name" loading="lazy" />
-                    <span class="avatar-name">{{ avatar.name }}</span>
-                  </button>
+                  <li>
+                    <button
+                      type="button"
+                      class="avatar-option"
+                      [class.selected]="selectedAvatarId() === avatar.id"
+                      [attr.aria-pressed]="selectedAvatarId() === avatar.id"
+                      (click)="selectAvatar(avatar.id)"
+                    >
+                      <img [src]="avatar.image_url" [alt]="avatar.name" loading="lazy" />
+                      <span class="avatar-name">{{ avatar.name }}</span>
+                    </button>
+                  </li>
                 }
-              </div>
-            </div>
+              </ul>
+            </section>
           </fieldset>
 
           <fieldset class="setup-fieldset">
             <legend class="setup-legend">Modo de Jogo</legend>
 
             <div class="mode-grid">
-              <button type="button" class="mode-card" [class.selected]="mode() === 'alone'" (click)="selectMode('alone')">
-                <div class="mode-card-header">
-                  <span class="mode-icon">👤</span>
-                  <h2 class="mode-title">Jogar sozinho(a)</h2>
-                </div>
-                <p class="mode-desc">Jogas sem casa. Não terás código de convite.</p>
+              <button
+                type="button"
+                class="mode-card"
+                [class.selected]="mode() === 'alone'"
+                [attr.aria-pressed]="mode() === 'alone'"
+                (click)="selectMode('alone')"
+              >
+                <span class="mode-card-header">
+                  <span class="mode-icon" aria-hidden="true">👤</span>
+                  <strong class="mode-title">Jogar sozinho(a)</strong>
+                </span>
+                <span class="mode-desc">Jogas sem casa. Não terás código de convite.</span>
               </button>
-              <button type="button" class="mode-card" [class.selected]="mode() === 'together'" (click)="selectMode('together')">
-                <div class="mode-card-header">
-                  <span class="mode-icon">👨‍👩‍👧</span>
-                  <h2 class="mode-title">Jogar em dupla</h2>
-                </div>
-                <p class="mode-desc">Juntas-te a uma casa ou crias a tua própria casa.</p>
+              <button
+                type="button"
+                class="mode-card"
+                [class.selected]="mode() === 'together'"
+                [attr.aria-pressed]="mode() === 'together'"
+                (click)="selectMode('together')"
+              >
+                <span class="mode-card-header">
+                  <span class="mode-icon" aria-hidden="true">👨‍👩‍👧</span>
+                  <strong class="mode-title">Jogar em dupla</strong>
+                </span>
+                <span class="mode-desc">Juntas-te a uma casa ou crias a tua própria casa.</span>
               </button>
             </div>
 
             @if (mode() === 'together') {
-              <div class="join-method">
-                <p class="join-title">Como queres entrar na casa?</p>
-                <button type="button" class="join-option" [class.selected]="joinMethod() === 'code'" (click)="joinMethod.set('code')">
+              <section class="join-method" aria-labelledby="join-title">
+                <h3 id="join-title" class="join-title">Como queres entrar na casa?</h3>
+                <button
+                  type="button"
+                  class="join-option"
+                  [class.selected]="joinMethod() === 'code'"
+                  [attr.aria-pressed]="joinMethod() === 'code'"
+                  (click)="joinMethod.set('code')"
+                >
                   🔑 Entrar com código
                 </button>
-                <button type="button" class="join-option" [class.selected]="joinMethod() === 'create'" (click)="joinMethod.set('create')">
+                <button
+                  type="button"
+                  class="join-option"
+                  [class.selected]="joinMethod() === 'create'"
+                  [attr.aria-pressed]="joinMethod() === 'create'"
+                  (click)="joinMethod.set('create')"
+                >
                   🏠 Criar a minha casa
                 </button>
-              </div>
+              </section>
 
               @if (joinMethod() === 'code') {
                 <div class="form-group">
                   <label class="form-label" for="inviteCode">Código de convite da casa</label>
-                  <input id="inviteCode" class="form-control" [(ngModel)]="inviteCodeInput" [ngModelOptions]="{standalone: true}" placeholder="Ex: ABC123" maxlength="6" autocapitalize="characters" />
-                  <small class="form-hint">Pede o código à pessoa que criou a casa.</small>
+                  <input
+                    id="inviteCode"
+                    class="form-control"
+                    [(ngModel)]="inviteCodeInput"
+                    [ngModelOptions]="{ standalone: true }"
+                    placeholder="Ex: ABC123"
+                    maxlength="6"
+                    autocapitalize="characters"
+                    aria-describedby="invite-hint"
+                  />
+                  <small id="invite-hint" class="form-hint">Pede o código à pessoa que criou a casa (6 caracteres).</small>
                 </div>
               }
 
@@ -92,7 +160,7 @@
             }
 
             @if (errorMessage()) {
-              <aside class="error-banner">
+              <aside class="error-banner" role="alert">
                 <p>{{ errorMessage() }}</p>
               </aside>
             }
@@ -107,20 +175,20 @@
           </fieldset>
         </form>
       } @else {
-        <div class="invite-code-panel">
-          <div class="invite-code-icon">🏠</div>
-          <h2 class="invite-code-title">{{ householdName() ? 'Casa: ' + householdName() : 'Tua Casa' }}</h2>
+        <section class="invite-code-panel" aria-labelledby="invite-panel-title">
+          <span class="invite-code-icon" aria-hidden="true">🏠</span>
+          <h2 id="invite-panel-title" class="invite-code-title">{{ householdName() ? 'Casa: ' + householdName() : 'Tua Casa' }}</h2>
           <p class="invite-code-subtitle">Partilha este código com quem vai jogar contigo nesta casa</p>
-          <div class="invite-code-box">
+          <p class="invite-code-box">
             <span class="invite-code-text">{{ householdInviteCode() ?? createdHousehold()?.invite_code }}</span>
             <button type="button" class="btn-copy" (click)="copyInviteCode()">Copiar código</button>
-          </div>
+          </p>
           <p class="invite-code-info">Com este código, a outra pessoa consegue entrar na mesma casa e partilharão a loja e as recompensas.</p>
           <button class="btn-finish" type="button" (click)="leaveHousehold()">🚪 Sair da casa</button>
           <button class="btn-finish" type="button" (click)="goToDashboard()">Ir para o Dashboard</button>
           <button class="btn-finish" type="button" (click)="goToProfileEdit()">✏️ Editar perfil</button>
-        </div>
+        </section>
       }
     </article>
-  </section>
-</main>
+  </div>
+</section>

@@ -1,26 +1,27 @@
-import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { SupabaseService } from '../../services/supabase-service';
-import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
-import { from, Subscription } from 'rxjs';
+import { CatalogService } from '../../services/catalog.service';
+import { GamificationService } from '../../services/gamification.service';
+import { SupabaseService } from '../../services/supabase-service';
 
 @Component({
     selector: 'app-profile-edit',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule],
+    imports: [ReactiveFormsModule],
     templateUrl: './profile-edit.component.html',
     styleUrls: ['./profile-edit.component.css']
 })
-export class ProfileEditComponent implements OnDestroy, OnInit {
-    private supabaseService = inject(SupabaseService);
-    private authService = inject(AuthService);
+export class ProfileEditComponent implements OnInit {
+    private client = inject(SupabaseService).supabaseClient;
+    private catalog = inject(CatalogService);
+    private gamificationService = inject(GamificationService);
     private fb = inject(FormBuilder);
     private router = inject(Router);
 
-    avatars = signal<any[]>([]);
-    roles = signal<any[]>([]);
+    readonly avatars = this.catalog.avatars;
+    readonly roles = this.catalog.roles;
+
     loading = signal<boolean>(false);
     successMessage = signal<string | null>(null);
     errorMessage = signal<string | null>(null);
@@ -32,82 +33,78 @@ export class ProfileEditComponent implements OnDestroy, OnInit {
         name: ['', [Validators.required, Validators.minLength(2)]]
     });
 
-    private subs: Subscription[] = [];
-
     ngOnInit() {
         this.loadCatalogsAndProfile();
     }
 
-    ngOnDestroy() {
-        this.subs.forEach((s) => s.unsubscribe());
+    /** Lê o utilizador da sessão (e não do signal), por isso funciona também depois de F5. */
+    private async getUserId(): Promise<string | null> {
+        const { data } = await this.client.auth.getSession();
+        return data.session?.user.id ?? null;
     }
 
-    loadCatalogsAndProfile() {
-        const client = this.supabaseService.supabaseClient;
-        const user = this.authService.currentUser();
-
-        if (!user) {
+    async loadCatalogsAndProfile(): Promise<void> {
+        const userId = await this.getUserId();
+        if (!userId) {
             this.router.navigate(['/auth']);
             return;
         }
 
-        // 1. Carregar avatares
-        this.subs.push(from(client.from('avatar').select('*')).subscribe((res: any) => {
-            if (res.data) this.avatars.set(res.data);
-        }));
+        await this.catalog.load();
 
-        // 2. Carregar roles
-        this.subs.push(from(client.from('role').select('*')).subscribe((res: any) => {
-            if (res.data) this.roles.set(res.data);
-        }));
+        const { data, error } = await (this.client as any)
+            .from('profile')
+            .select('*')
+            .eq('id', userId)
+            .single();
 
-        // 3. Carregar dados atuais do perfil do utilizador
-        this.subs.push(from(client.from('profile').select('*').eq('id', user.id).single()).subscribe((res: any) => {
-            if (res.data) {
-                this.profileForm.patchValue({ name: res.data.name });
-                this.selectedAvatarId.set(res.data.id_avatar);
-                this.selectedRoleId.set(res.data.id_role);
-            }
-        }));
+        if (error || !data) {
+            this.errorMessage.set('Não foi possível carregar o teu perfil.');
+            return;
+        }
+
+        this.profileForm.patchValue({ name: data.name });
+        this.selectedAvatarId.set(data.id_avatar);
+        this.selectedRoleId.set(data.id_role);
     }
 
     selectAvatar(id: number) { this.selectedAvatarId.set(id); }
     selectRole(id: number) { this.selectedRoleId.set(id); }
 
-    onSubmit() {
-        if (this.profileForm.invalid) return;
+    async onSubmit(): Promise<void> {
+        if (this.profileForm.invalid) {
+            this.profileForm.markAllAsTouched();
+            return;
+        }
 
-        const user = this.authService.currentUser();
-        if (!user) return;
+        const userId = await this.getUserId();
+        if (!userId) return;
 
         this.loading.set(true);
         this.successMessage.set(null);
         this.errorMessage.set(null);
 
-        const updates = {
-            name: this.profileForm.value.name,
-            id_avatar: this.selectedAvatarId(),
-            id_role: this.selectedRoleId()
-        };
+        try {
+            const { data, error } = await (this.client as any)
+                .from('profile')
+                .update({
+                    name: this.profileForm.value.name.trim(),
+                    id_avatar: this.selectedAvatarId(),
+                    id_role: this.selectedRoleId()
+                })
+                .eq('id', userId)
+                .select();
 
-        const promise = this.supabaseService.supabaseClient
-            .from('profile')
-            .update(updates)
-            .eq('id', user.id);
+            if (error) throw error;
+            if (!data?.length) throw new Error('Não foi possível guardar: perfil não encontrado.');
 
-        from(promise).subscribe({
-            next: (res: any) => {
-                this.loading.set(false);
-                if (res.error) {
-                    this.errorMessage.set(res.error.message);
-                } else {
-                    this.successMessage.set('Perfil atualizado com sucesso, Herói!');
-                }
-            },
-            error: (err) => {
-                this.loading.set(false);
-                this.errorMessage.set(err.message || 'Erro ao atualizar perfil.');
-            }
-        });
+            this.successMessage.set('Perfil atualizado com sucesso, Herói!');
+            // Atualiza nome e avatar no Dashboard e no resto da app
+            await this.gamificationService.refreshProfile();
+        } catch (err: any) {
+            this.errorMessage.set(err?.message || 'Erro ao atualizar perfil.');
+        } finally {
+            this.loading.set(false);
+        }
     }
 }

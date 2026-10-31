@@ -1,3 +1,29 @@
 /* You can add global styles to this file, and also import other style files */
 *, *::before, *::after { box-sizing: border-box; }
 body { margin: 0; }
+:where(ul[class]) {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Texto de erro dos formulários (se ainda não existir um estilo global) */
+.form-error-text {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: #c0392b;
+}
+
+button.role-option,
+button.avatar-option {
+  font: inherit;
+  color: inherit;
+}
+
+/* <fieldset> usado como grupo: sem a moldura por defeito do browser */
+fieldset.form-group {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}

@@ -1,7 +1,6 @@
-import { Injectable, signal, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { CatalogService } from './catalog.service';
 import { SupabaseService } from './supabase-service';
-import { Observable, from } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
 
 export interface Profile {
     id: string;
@@ -21,21 +20,15 @@ export interface Profile {
     household_id?: string | null;
 }
 
-@Injectable({
-    providedIn: 'root'
-})
-export class GamificationService {
-    private supabaseService = inject(SupabaseService);
-    private client = this.supabaseService.supabaseClient;
+const DEFAULT_AVATAR = '🧙‍♂️';
 
-    readonly profiles = signal<Profile[]>([]);
-
-    readonly userProfile = signal<Profile>({
+function defaultProfile(): Profile {
+    return {
         id: '',
         name: 'Aventureiro',
         email: '',
-        avatar: '🧙‍♂️',
-        role: 'Individual',
+        avatar: DEFAULT_AVATAR,
+        role: 'Aventureiro',
         idAvatar: 1,
         idRole: 1,
         level: 1,
@@ -44,17 +37,28 @@ export class GamificationService {
         coins: 50,
         streakDays: 1,
         active: true,
-        lastActiveDate: null
+        lastActiveDate: null,
+        household_id: null
+    };
+}
 
-    });
+/**
+ * Estado do jogador (nível, XP, moedas, streak) e dos membros da casa.
+ * Quem decide QUANDO carregar é o AppComponent: carrega ao entrar e limpa ao sair.
+ */
+@Injectable({ providedIn: 'root' })
+export class GamificationService {
+    private client = inject(SupabaseService).supabaseClient;
+    private catalog = inject(CatalogService);
+    private readonly db = this.client as any;
 
-    refreshProfile(): void {
-        this.loadProfiles();
-    }
+    /** Eu + membros da minha casa. */
+    readonly profiles = signal<Profile[]>([]);
+    /** O meu perfil. */
+    readonly userProfile = signal<Profile>(defaultProfile());
 
-    constructor() {
-        this.loadProfiles();
-    }
+    /** Evita tentar criar o perfil inicial em ciclo se a base de dados recusar. */
+    private seedTried = false;
 
     private getLocalDateString(date: Date = new Date()): string {
         const year = date.getFullYear();
@@ -63,351 +67,223 @@ export class GamificationService {
         return `${year}-${month}-${day}`;
     }
 
-    loadProfiles() {
-        from(this.client.auth.getSession())
-            .pipe(
-                switchMap(({ data: sessionData }: any) => {
-                    let userId = sessionData?.session?.user?.id;
-
-                    const profilesPromise = (this.client as any).from('profile').select('*');
-                    const avatarsPromise = (this.client as any).from('avatar').select('*');
-
-                    if (userId) {
-                        return from(Promise.all([profilesPromise, avatarsPromise])).pipe(
-                            map(([profilesRes, avatarsRes]: any) => ({
-                                profilesRes,
-                                avatarsRes,
-                                userId
-                            }))
-                        );
-                    }
-
-                    return from(this.client.auth.getUser()).pipe(
-                        switchMap(({ data: userData, error: authError }: any) => {
-                            if (authError) throw authError;
-                            userId = userData?.user?.id;
-
-                            return from(Promise.all([profilesPromise, avatarsPromise])).pipe(
-                                map(([profilesRes, avatarsRes]: any) => ({
-                                    profilesRes,
-                                    avatarsRes,
-                                    userId
-                                }))
-                            );
-                        })
-                    );
-                })
-            )
-            .subscribe({
-                next: ({ profilesRes, avatarsRes, userId }: any) => {
-                    const data = profilesRes.data as any[];
-                    const error = profilesRes.error;
-                    const avatarsData = avatarsRes.data as any[] || [];
-
-                    if (error) {
-                        console.error('Erro ao carregar perfis:', error);
-                        return;
-                    }
-
-                    const avatarMap = new Map<number, string>();
-                    avatarsData.forEach((av: any) => {
-                        if (av.id && av.image_url) {
-                            avatarMap.set(Number(av.id), av.image_url);
-                        }
-                    });
-
-                    if (data && data.length > 0) {
-                        const mapped: Profile[] = data.map((item: any) => {
-                            let avatarDisplay = '🧙‍♂️';
-                            if (item.id_avatar) {
-                                const avatarUrl = avatarMap.get(Number(item.id_avatar));
-                                if (avatarUrl) {
-                                    avatarDisplay = avatarUrl;
-                                }
-                            }
-                            return {
-                                id: item.id,
-                                name: item.name,
-                                email: item.email || '',
-                                avatar: avatarDisplay,
-                                role: item.profile_id_role_fkey,
-                                idAvatar: item.id_avatar,
-                                idRole: item.id_role,
-                                level: item.level || 1,
-                                currentXp: item.current_xp || 0,
-                                maxXp: item.max_xp || 100,
-                                coins: item.coins || 0,
-                                streakDays: item.streak_days || 1,
-                                active: item.active ?? true,
-                                lastActiveDate: item.last_active_date || null,
-                                household_id: item.household_id ?? null
-                            };
-                        });
-
-                        const currentProfile = mapped.find((p) => p.id === userId);
-                        const userHouseholdId = currentProfile?.household_id ?? null;
-
-                        const filtered = mapped.filter((p) =>
-                            p.id === userId || (userHouseholdId && p.household_id === userHouseholdId)
-                        );
-
-                        this.profiles.set(filtered);
-
-                        if (userId) {
-                            const cp = filtered.find((p) => p.id === userId);
-                            if (cp) {
-                                this.userProfile.set(cp);
-                                this.checkAndUpdateStreak();
-                                return;
-                            }
-                        }
-
-                        this.seedDefaultProfile();
-                        return;
-                    }
-
-                    this.seedDefaultProfile();
-                },
-                error: (err: unknown) => {
-                    console.error('Erro de ligação ao Supabase:', err);
-                    setTimeout(() => this.loadProfiles(), 1000);
-                }
-            });
+    /** Limpa tudo (logout): a conta seguinte não pode ver dados da anterior. */
+    reset(): void {
+        this.seedTried = false;
+        this.profiles.set([]);
+        this.userProfile.set(defaultProfile());
     }
 
-    private async seedDefaultProfile() {
-        const authResult = await this.client.auth.getUser();
-        const user = authResult.data?.user;
-        if (!user) return;
+    refreshProfile(): Promise<void> {
+        return this.loadProfiles();
+    }
 
-        const todayStr = this.getLocalDateString();
-        const initial = this.userProfile();
-        const dbPayload = {
-            id: user.id,
-            name: user.user_metadata?.['name'] || initial.name,
-            email: user.email || initial.email,
-            id_avatar: initial.idAvatar,
-            id_role: initial.idRole,
-            level: initial.level,
-            current_xp: initial.currentXp,
-            max_xp: initial.maxXp,
-            coins: initial.coins,
-            streak_days: initial.streakDays,
-            active: true,
-            last_active_date: todayStr
-        };
+    async loadProfiles(): Promise<void> {
+        const { data: { session } } = await this.client.auth.getSession();
+        const user = session?.user;
+        if (!user) return; // sem sessão não há nada para carregar (e não insiste em loop)
 
-        const promise = (this.client as any)
+        await this.catalog.load();
+
+        const { data: mine, error } = await this.db
             .from('profile')
-            .insert([dbPayload])
-            .select();
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
 
-        from(promise).subscribe({
-            next: () => this.loadProfiles(),
-            error: (err: unknown) => console.error('Erro ao criar perfil inicial:', err)
-        });
-    }
-
-    checkAndUpdateStreak() {
-        const active = this.userProfile();
-        if (!active || !active.id) return;
-
-        const todayStr = this.getLocalDateString();
-        const lastActive = active.lastActiveDate;
-
-        // Se já acedeu hoje, não faz nada
-        if (lastActive === todayStr) return;
-
-        let newStreak = active.streakDays;
-
-        if (!lastActive) {
-            // Primeiro acesso registado
-            newStreak = 1;
-        } else {
-            // Converter ambas as datas para objetos Date à meia-noite local (ignorar horas)
-            const [lastYear, lastMonth, lastDay] = lastActive.split('-').map(Number);
-            const [todayYear, todayMonth, todayDay] = todayStr.split('-').map(Number);
-
-            const lastDate = new Date(lastYear, lastMonth - 1, lastDay);
-            const currentDate = new Date(todayYear, todayMonth - 1, todayDay);
-
-            // Diferença em dias inteiros (apenas data, sem horas)
-            const diffTime = currentDate.getTime() - lastDate.getTime();
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            if (diffDays === 1) {
-                // Acessou ontem -> continua a sequência
-                newStreak = active.streakDays + 1;
-            } else if (diffDays > 1) {
-                // Quebrou a sequência (passou mais de 1 dia sem aceder)
-                newStreak = 1;
-            } else {
-                // diffDays <= 0 (data estranha) -> mantém
-                newStreak = active.streakDays;
-            }
+        if (error) {
+            console.error('Erro ao carregar perfil:', error);
+            return;
         }
 
-        const dbPayload = {
-            streak_days: newStreak,
-            last_active_date: todayStr
-        };
+        if (!mine) {
+            await this.seedDefaultProfile(user);
+            return;
+        }
 
-        const promise = (this.client as any)
-            .from('profile')
-            .update(dbPayload)
-            .eq('id', active.id)
-            .select();
-
-        from(promise).subscribe({
-            next: () => {
-                const updated: Profile = {
-                    ...active,
-                    streakDays: newStreak,
-                    lastActiveDate: todayStr
-                };
-                this.userProfile.set(updated);
-
-                this.profiles.update((list) =>
-                    list.map((p) => (p.id === active.id ? updated : p))
-                );
-            },
-            error: (err: unknown) => console.error('Erro ao atualizar streak:', err)
-        });
-    }
-
-    switchActiveProfile(profileId: string) {
-        const currentList = this.profiles();
-
-        currentList.forEach((p) => {
-            const isActive = p.id === profileId;
-            const promise = (this.client as any)
+        // Só vai buscar os membros da MINHA casa (e não todos os perfis da tabela)
+        let rows: any[] = [mine];
+        if (mine.household_id) {
+            const { data: members, error: membersError } = await this.db
                 .from('profile')
-                .update({ active: isActive })
-                .eq('id', p.id);
+                .select('*')
+                .eq('household_id', mine.household_id);
+            if (!membersError && members?.length) rows = members;
+        }
 
-            from(promise).subscribe();
-        });
+        const profiles = rows.map((row) => this.toProfile(row));
+        this.profiles.set(profiles);
 
-        const updated = currentList.map((p) => ({
-            ...p,
-            active: p.id === profileId
-        }));
-
-        this.profiles.set(updated);
-        const newActive = updated.find((p) => p.id === profileId);
-        if (newActive) {
-            this.userProfile.set(newActive);
-            this.checkAndUpdateStreak();
+        const current = profiles.find((p) => p.id === user.id);
+        if (current) {
+            this.userProfile.set(current);
+            await this.checkAndUpdateStreak();
         }
     }
 
-    async addProfile(name: string, email: string, avatarEmoji: string, roleName: string) {
-        const authResult = await this.client.auth.getUser();
-        const user = authResult.data?.user;
-        if (!user) return;
-
-        const todayStr = this.getLocalDateString();
-        const newProfileDb = {
-            id: user.id,
-            name,
-            email,
-            id_avatar: 1,
-            id_role: 1,
-            level: 1,
-            current_xp: 0,
-            max_xp: 100,
-            coins: 30,
-            streak_days: 1,
-            active: false,
-            last_active_date: todayStr
+    private toProfile(item: any): Profile {
+        const avatar = this.catalog.avatars().find((a) => a.id === Number(item.id_avatar));
+        const role = this.catalog.roles().find((r) => r.id === Number(item.id_role));
+        return {
+            id: item.id,
+            name: item.name,
+            email: item.email ?? '',
+            avatar: avatar?.image_url ?? DEFAULT_AVATAR,
+            role: role?.name ?? 'Aventureiro',
+            idAvatar: item.id_avatar ?? null,
+            idRole: item.id_role ?? null,
+            level: item.level ?? 1,
+            currentXp: item.current_xp ?? 0,
+            maxXp: item.max_xp ?? 100,
+            coins: item.coins ?? 0,
+            streakDays: item.streak_days ?? 1,
+            active: item.active ?? true,
+            lastActiveDate: item.last_active_date ?? null,
+            household_id: item.household_id ?? null
         };
-
-        const promise = (this.client as any)
-            .from('profile')
-            .insert([newProfileDb])
-            .select();
-
-        from(promise).subscribe({
-            next: () => this.loadProfiles(),
-            error: (err: unknown) => console.error('Erro ao adicionar novo perfil:', err)
-        });
     }
 
-    addRewards(xp: number, coins: number) {
-        const active = this.userProfile();
-        let newXp = active.currentXp + xp;
-        let newLevel = active.level;
-        let newMaxXp = active.maxXp;
+    /** Primeiro login: cria a linha base do perfil (sem sobrescrever uma existente). */
+    private async seedDefaultProfile(user: { id: string; email?: string | null; user_metadata?: any }): Promise<void> {
+        if (this.seedTried) return;
+        this.seedTried = true;
 
-        if (newXp >= newMaxXp) {
-            newXp -= newMaxXp;
-            newLevel += 1;
-            newMaxXp = Math.floor(newMaxXp * 1.2);
+        const initial = defaultProfile();
+        const { error } = await this.db.from('profile').upsert(
+            {
+                id: user.id,
+                name: user.user_metadata?.['name'] || initial.name,
+                email: user.email || '',
+                id_avatar: initial.idAvatar,
+                id_role: initial.idRole,
+                level: initial.level,
+                current_xp: initial.currentXp,
+                max_xp: initial.maxXp,
+                coins: initial.coins,
+                streak_days: initial.streakDays,
+                active: true,
+                last_active_date: this.getLocalDateString()
+            },
+            { onConflict: 'id', ignoreDuplicates: true }
+        );
+
+        if (error) {
+            console.error('Erro ao criar perfil inicial:', error);
+            return;
+        }
+        await this.loadProfiles();
+    }
+
+    /**
+     * Cria o perfil no registo. Agora grava mesmo o avatar e a classe escolhidos
+     * (os parâmetros chegam como texto: "3" -> 3).
+     */
+    async addProfile(name: string, email: string, avatarId: string | number, roleId: string | number): Promise<void> {
+        const { data: { session } } = await this.client.auth.getSession();
+        const user = session?.user;
+        if (!user) return; // conta a aguardar confirmação de e-mail: o perfil nasce no primeiro login
+
+        const initial = defaultProfile();
+        const { error } = await this.db.from('profile').upsert(
+            {
+                id: user.id,
+                name,
+                email,
+                id_avatar: Number(avatarId) || initial.idAvatar,
+                id_role: Number(roleId) || initial.idRole,
+                level: 1,
+                current_xp: 0,
+                max_xp: 100,
+                coins: 30,
+                streak_days: 1,
+                active: true,
+                last_active_date: this.getLocalDateString()
+            },
+            { onConflict: 'id' }
+        );
+
+        if (error) {
+            console.error('Erro ao criar perfil:', error);
+            throw error;
+        }
+        await this.loadProfiles();
+    }
+
+    async checkAndUpdateStreak(): Promise<void> {
+        const active = this.userProfile();
+        if (!active.id) return;
+
+        const today = this.getLocalDateString();
+        if (active.lastActiveDate === today) return;
+
+        let newStreak = 1;
+        if (active.lastActiveDate) {
+            const [y, m, d] = active.lastActiveDate.slice(0, 10).split('-').map(Number);
+            const last = new Date(y, m - 1, d);
+            const now = new Date();
+            const current = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const diffDays = Math.round((current.getTime() - last.getTime()) / 86_400_000);
+
+            if (diffDays === 1) newStreak = active.streakDays + 1; // ontem -> continua a sequência
+            else if (diffDays > 1) newStreak = 1; // falhou dias -> recomeça
+            else newStreak = active.streakDays;
         }
 
+        const { error } = await this.db
+            .from('profile')
+            .update({ streak_days: newStreak, last_active_date: today })
+            .eq('id', active.id);
+
+        if (error) {
+            console.error('Erro ao atualizar streak:', error);
+            return;
+        }
+        this.applyProfile({ ...active, streakDays: newStreak, lastActiveDate: today });
+    }
+
+    async addRewards(xp: number, coins: number): Promise<void> {
+        const active = this.userProfile();
+        if (!active.id) return;
+
+        let currentXp = active.currentXp + xp;
+        let level = active.level;
+        let maxXp = active.maxXp;
+        while (currentXp >= maxXp) {
+            currentXp -= maxXp;
+            level += 1;
+            maxXp = Math.floor(maxXp * 1.2);
+        }
         const newCoins = active.coins + coins;
 
-        const dbPayload = {
-            current_xp: newXp,
-            level: newLevel,
-            max_xp: newMaxXp,
-            coins: newCoins
-        };
-
-        const promise = (this.client as any)
+        const { error } = await this.db
             .from('profile')
-            .update(dbPayload)
-            .eq('id', active.id)
-            .select();
+            .update({ current_xp: currentXp, level, max_xp: maxXp, coins: newCoins })
+            .eq('id', active.id);
 
-        from(promise).subscribe({
-            next: () => {
-                const updatedActive: Profile = {
-                    ...active,
-                    currentXp: newXp,
-                    level: newLevel,
-                    maxXp: newMaxXp,
-                    coins: newCoins
-                };
-                this.userProfile.set(updatedActive);
-                this.profiles.update((list) =>
-                    list.map((p) => (p.id === active.id ? updatedActive : p))
-                );
-            },
-            error: (err: unknown) => console.error('Erro ao atualizar recompensas:', err)
-        });
+        if (error) {
+            console.error('Erro ao atualizar recompensas:', error);
+            return;
+        }
+        this.applyProfile({ ...active, currentXp, level, maxXp, coins: newCoins });
     }
 
-    spendCoins(amount: number): boolean {
+    /** Só desconta no ecrã depois de a base de dados confirmar. */
+    async spendCoins(amount: number): Promise<boolean> {
         const active = this.userProfile();
-        if (active.coins < amount) return false;
+        if (!active.id || active.coins < amount) return false;
 
-        const newCoins = active.coins - amount;
-
-        const dbPayload = {
-            coins: newCoins
-        };
-
-        const promise = (this.client as any)
-            .from('profile')
-            .update(dbPayload)
-            .eq('id', active.id)
-            .select();
-
-        from(promise).subscribe({
-            next: () => {
-                const updatedActive: Profile = {
-                    ...active,
-                    coins: newCoins
-                };
-                this.userProfile.set(updatedActive);
-                this.profiles.update((list) =>
-                    list.map((p) => (p.id === active.id ? updatedActive : p))
-                );
-            },
-            error: (err: unknown) => console.error('Erro ao gastar moedas:', err)
-        });
-
+        const coins = active.coins - amount;
+        const { error } = await this.db.from('profile').update({ coins }).eq('id', active.id);
+        if (error) {
+            console.error('Erro ao gastar moedas:', error);
+            return false;
+        }
+        this.applyProfile({ ...active, coins });
         return true;
+    }
+
+    private applyProfile(updated: Profile): void {
+        this.userProfile.set(updated);
+        this.profiles.update((list) => list.map((p) => (p.id === updated.id ? updated : p)));
     }
 }

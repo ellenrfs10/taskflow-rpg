@@ -1,4 +1,4 @@
-<main class="dashboard-page" [class.dark-theme]="isDarkMode()">
+<section class="dashboard-page">
   <header class="page-header">
     <hgroup>
       <h1>Painel do Herói</h1>
@@ -6,7 +6,6 @@
     </hgroup>
   </header>
 
-  <!-- Perfil e resumo -->
   <section class="grid" aria-label="Resumo do jogador">
     @if (userProfile(); as user) {
       <article class="card profile-card" aria-labelledby="profile-heading">
@@ -14,7 +13,7 @@
           @if (user.avatar && (user.avatar.startsWith('http') || user.avatar.includes('/'))) {
             <img class="avatar-img" [src]="user.avatar" [alt]="'Avatar de ' + user.name" loading="lazy" />
           } @else {
-            <p class="avatar" aria-hidden="true">{{ user.avatar || '🧙‍♂️' }}</p>
+            <span class="avatar" aria-hidden="true">{{ user.avatar || '🧙‍♂️' }}</span>
           }
           <p class="level-badge"><small>Nível</small><strong>{{ user.level }}</strong></p>
         </header>
@@ -24,22 +23,15 @@
 
         <p class="xp-labels">
           <span>XP: {{ user.currentXp }} / {{ user.maxXp }}</span>
-          <span>{{ xpPercent() | number:'1.0-0' }}%</span>
+          <span>{{ xpPercent() | number: '1.0-0' }}%</span>
         </p>
         <progress [value]="xpPercent()" max="100" aria-label="Progresso de experiência"></progress>
 
         <p class="coins-badge">🪙 {{ user.coins }} Moedas de Ouro</p>
 
-        <div class="household-invite-wrapper">
-          <app-household-invite-code
-          [code]="inviteCode()"
-          label="Código da tua casa"
-          (codeCopied)="copyInviteCode()">
-        </app-household-invite-code>
-        </div>
-        
+        <app-household-invite-code [code]="inviteCode()" label="Código da tua casa" />
 
-        <a routerLink="/profile-setup" class="edit-profile-link">✏️ Editar perfil</a>
+        <a routerLink="/profile/edit" class="edit-profile-link">✏️ Editar perfil</a>
       </article>
     }
 
@@ -57,12 +49,20 @@
         </li>
       </ul>
 
-      @if (closestDeadline()) {
-        <div class="deadline-card">
+      @if (closestDeadline(); as deadline) {
+        <aside class="deadline-card">
           <span class="deadline-label">📅 Prazo mais próximo</span>
-          <strong class="deadline-title">{{ closestDeadline()!.title }}</strong>
-          <span class="deadline-date">{{ formatDate(closestDeadline()!.dueDate) }}</span>
-        </div>
+          <strong class="deadline-title">{{ deadline.title }}</strong>
+          <time class="deadline-date" [attr.datetime]="deadline.dueDate">{{ deadline.dueDate | date: 'dd/MM' }}</time>
+        </aside>
+      }
+
+      @if (lastPurchasedReward(); as reward) {
+        <aside class="reward-card">
+          <span class="reward-label">🎁 Última recompensa resgatada</span>
+          <strong class="reward-title">{{ reward.icon }} {{ reward.title }}</strong>
+          <time class="reward-date" [attr.datetime]="reward.redeemed_at">{{ reward.redeemed_at | date: 'dd/MM/yyyy' }}</time>
+        </aside>
       }
 
       <nav class="actions" aria-label="Ações rápidas">
@@ -72,7 +72,6 @@
     </article>
   </section>
 
-  <!-- Listas de missões -->
   <section class="grid" aria-label="Listas de missões">
     <article class="card" aria-labelledby="pending-heading">
       <h2 id="pending-heading">⏳ Missões Pendentes ({{ pendingTasks().length }})</h2>
@@ -84,7 +83,7 @@
           @for (task of recentPendingTasks(); track task.id) {
             <li class="task-item">
               <span class="task-title">{{ task.title }}</span>
-              <span class="urgency-badge" [ngClass]="task.urgency">
+              <span class="urgency-badge" [class]="task.urgency">
                 @switch (task.urgency) {
                   @case ('baixa') { Baixa }
                   @case ('media') { Média }
@@ -105,14 +104,6 @@
     <article class="card" aria-labelledby="completed-heading">
       <h2 id="completed-heading">✅ Últimas Missões Concluídas ({{ completedTasks().length }})</h2>
 
-      @if (lastPurchasedReward()) {
-        <div class="reward-card">
-          <span class="reward-label">🎁 Última recompensa resgatada</span>
-          <strong class="reward-title">{{ lastPurchasedReward()!.icon }} {{ lastPurchasedReward()!.title }}</strong>
-          <span class="reward-date">{{ lastPurchasedReward()!.redeemed_at | date:'dd/MM/yyyy' }}</span>
-        </div>
-      }
-
       @if (recentCompletedTasks().length === 0) {
         <p class="empty-state">Ainda nenhuma missão concluída.</p>
       } @else {
@@ -130,4 +121,4 @@
       }
     </article>
   </section>
-</main>
+</section>

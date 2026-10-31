@@ -1,37 +1,32 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { CatalogService } from '../../services/catalog.service';
 import { GamificationService } from '../../services/gamification.service';
-import { ThemeService } from '../../services/theme.service';
-import { SupabaseService } from '../../services/supabase-service';
-
 
 @Component({
     selector: 'app-auth',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule],
+    imports: [ReactiveFormsModule],
     templateUrl: './auth.component.html',
     styleUrls: ['./auth.component.css']
 })
 export class AuthComponent implements OnInit {
     private authService = inject(AuthService);
+    private catalog = inject(CatalogService);
     private gamificationService = inject(GamificationService);
     private fb = inject(FormBuilder);
     private router = inject(Router);
-    private theme = inject(ThemeService);
-    private supabaseService = inject(SupabaseService);
-    private client = this.supabaseService.supabaseClient;
 
     isLoginMode = signal<boolean>(true);
     errorMessage = signal<string | null>(null);
+    infoMessage = signal<string | null>(null);
     loading = signal<boolean>(false);
 
-    readonly isDarkMode = this.theme.isDark;
-
-    avatars = signal<any[]>([]);
-    roles = signal<any[]>([]);
+    // Avatares e classes vêm do serviço partilhado (carregados uma só vez)
+    readonly avatars = this.catalog.avatars;
+    readonly roles = this.catalog.roles;
     selectedAvatarId = signal<number | null>(null);
     selectedRoleId = signal<number | null>(null);
 
@@ -43,8 +38,7 @@ export class AuthComponent implements OnInit {
     });
 
     ngOnInit() {
-        this.loadAvatars();
-        this.loadRoles();
+        this.catalog.load();
         this.updateValidators();
     }
 
@@ -84,27 +78,14 @@ export class AuthComponent implements OnInit {
         return null;
     }
 
-    async loadAvatars() {
-        const { data, error } = await (this.client as any).from('avatar').select('*').order('id');
-        if (!error && data) this.avatars.set(data);
-    }
-
-    async loadRoles() {
-        const { data, error } = await (this.client as any).from('role').select('*').order('id');
-        if (!error && data) this.roles.set(data);
-    }
-
     toggleMode() {
         this.isLoginMode.update(val => !val);
         this.errorMessage.set(null);
+        this.infoMessage.set(null);
         this.selectedAvatarId.set(null);
         this.selectedRoleId.set(null);
         this.authForm.reset();
         this.updateValidators();
-    }
-
-    toggleTheme() {
-        this.theme.toggle();
     }
 
     selectAvatar(id: number) {
@@ -115,46 +96,53 @@ export class AuthComponent implements OnInit {
         this.selectedRoleId.set(id);
     }
 
+    /** Traduz as mensagens em inglês que o Supabase devolve. */
+    private friendlyError(err: any): string {
+        const message: string = err?.message ?? '';
+        if (message.includes('Invalid login credentials')) return 'E-mail ou palavra-passe incorretos.';
+        if (message.includes('Email not confirmed')) return 'Confirma o teu e-mail antes de entrar.';
+        if (message.includes('already registered')) return 'Já existe uma conta com este e-mail.';
+        return message || 'Ocorreu um erro. Tenta novamente.';
+    }
+
     async onSubmit() {
-        if (this.authForm.invalid || this.loading()) return;
+        if (this.authForm.invalid || this.loading()) {
+            this.authForm.markAllAsTouched();
+            return;
+        }
 
         const { name, email, password } = this.authForm.value;
         this.loading.set(true);
         this.errorMessage.set(null);
+        this.infoMessage.set(null);
 
         try {
             if (this.isLoginMode()) {
+                // O AuthService decide o destino: dashboard ou configuração do perfil
                 await this.authService.signIn(email, password);
-                await this.router.navigate(['/dashboard'], { replaceUrl: true });
+                return;
+            }
+
+            const avatarId = this.selectedAvatarId();
+            const roleId = this.selectedRoleId();
+            if (!avatarId || !roleId) {
+                this.errorMessage.set('Seleciona um avatar e a tua classe para criar o herói.');
+                return;
+            }
+
+            const hasSession = await this.authService.signUp(email, password, name);
+
+            if (hasSession) {
+                // Conta criada e já com sessão: grava o perfil e segue para a configuração
+                await this.gamificationService.addProfile(name, email, avatarId, roleId);
+                await this.router.navigate(['/profile-setup'], { replaceUrl: true });
             } else {
-                if (!this.selectedAvatarId() || !this.selectedRoleId()) {
-                    this.errorMessage.set('Seleciona um avatar e a tua classe para criar o herói.');
-                    this.loading.set(false);
-                    return;
-                }
-
-                if (this.authForm.hasError('passwordMismatch')) {
-                    this.errorMessage.set('As palavras-passe não coincidem.');
-                    this.loading.set(false);
-                    return;
-                }
-
-                // Criar conta no Auth
-                await this.authService.signUp(email, password);
-
-                // Criar perfil
-                await (this.gamificationService as any).addProfile(
-                    name,
-                    email,
-                    String(this.selectedAvatarId()),
-                    String(this.selectedRoleId())
-                );
-
-                alert('Herói criado com sucesso! Faz login para começar a tua aventura.');
+                // O Supabase pede confirmação por e-mail antes de dar sessão
                 this.toggleMode();
+                this.infoMessage.set('Conta criada! Confirma o teu e-mail e depois entra.');
             }
         } catch (err: any) {
-            this.errorMessage.set(err?.message || 'Ocorreu um erro. Tenta novamente.');
+            this.errorMessage.set(this.friendlyError(err));
         } finally {
             this.loading.set(false);
         }

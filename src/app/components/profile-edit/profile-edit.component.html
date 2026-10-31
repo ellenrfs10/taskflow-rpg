@@ -1,50 +1,84 @@
-<div class="profile-container">
-    <div class="card profile-card">
-        <h2>🛡️ Editar Perfil do Herói</h2>
+<section class="profile-container">
+    <article class="card profile-card">
+        <h1>🛡️ Editar Perfil do Herói</h1>
 
-        <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+        <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" novalidate>
+            @let nameCtrl = profileForm.get('name')!;
+
             <div class="form-group">
                 <label for="name">Nome do Herói</label>
-                <input id="name" type="text" formControlName="name" />
+                <input
+                    id="name"
+                    type="text"
+                    formControlName="name"
+                    autocomplete="name"
+                    [attr.aria-invalid]="nameCtrl.invalid && nameCtrl.touched"
+                    aria-describedby="name-error"
+                />
+                @if (nameCtrl.touched && nameCtrl.invalid) {
+                    <small id="name-error" class="form-error-text" role="alert">
+                        @if (nameCtrl.hasError('required')) {
+                            O nome do herói é obrigatório.
+                        } @else if (nameCtrl.hasError('minlength')) {
+                            O nome precisa de pelo menos 2 caracteres.
+                        }
+                    </small>
+                }
             </div>
 
-            <div class="form-group">
-                <label>Escolhe a tua Classe</label>
-                <div class="role-grid">
-                    <div 
-                        *ngFor="let role of roles()" 
-                        class="role-option"
-                        [class.selected]="selectedRoleId() === role.id"
-                        (click)="selectRole(role.id)">
-                        <span>⚔️ {{ role.name }}</span>
-                    </div>
-                </div>
-            </div>
+            <fieldset class="form-group">
+                <legend>Escolhe a tua Classe</legend>
+                <ul class="role-grid">
+                    @for (role of roles(); track role.id) {
+                        <li>
+                            <button
+                                type="button"
+                                class="role-option"
+                                [class.selected]="selectedRoleId() === role.id"
+                                [attr.aria-pressed]="selectedRoleId() === role.id"
+                                (click)="selectRole(role.id)"
+                            >
+                                <span>⚔️ {{ role.name }}</span>
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </fieldset>
 
-            <div class="form-group">
-                <label>Escolhe o teu Avatar</label>
-                <div class="avatar-grid">
-                    <div 
-                        *ngFor="let avatar of avatars()" 
-                        class="avatar-option"
-                        [class.selected]="selectedAvatarId() === avatar.id"
-                        (click)="selectAvatar(avatar.id)">
-                        <img [src]="avatar.image_url" [alt]="avatar.name" />
-                    </div>
-                </div>
-            </div>
+            <fieldset class="form-group">
+                <legend>Escolhe o teu Avatar</legend>
+                <ul class="avatar-grid">
+                    @for (avatar of avatars(); track avatar.id) {
+                        <li>
+                            <button
+                                type="button"
+                                class="avatar-option"
+                                [class.selected]="selectedAvatarId() === avatar.id"
+                                [attr.aria-pressed]="selectedAvatarId() === avatar.id"
+                                (click)="selectAvatar(avatar.id)"
+                            >
+                                <img [src]="avatar.image_url" [alt]="avatar.name" />
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </fieldset>
 
-            <div *ngIf="successMessage()" class="success-message">
-                ✨ {{ successMessage() }}
-            </div>
+            @if (successMessage()) {
+                <p class="success-message" role="status">✨ {{ successMessage() }}</p>
+            }
 
-            <div *ngIf="errorMessage()" class="error-message">
-                ⚠️ {{ errorMessage() }}
-            </div>
+            @if (errorMessage()) {
+                <p class="error-message" role="alert">⚠️ {{ errorMessage() }}</p>
+            }
 
-            <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid || loading()">
+            <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="profileForm.invalid || loading() || selectedRoleId() === null || selectedAvatarId() === null"
+            >
                 {{ loading() ? 'A gravar...' : 'Guardar Alterações' }}
             </button>
         </form>
-    </div>
-</div>
+    </article>
+</section>

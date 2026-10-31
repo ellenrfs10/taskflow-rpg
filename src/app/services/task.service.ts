@@ -1,247 +1,199 @@
-import { Injectable, signal, inject } from '@angular/core';
-import { SupabaseService } from './supabase-service';
-import { Task } from '../models/task.model';
-import { Observable, from } from 'rxjs';
-import { map, tap, switchMap } from 'rxjs/operators';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { Observable, finalize, from, map, of, switchMap, tap, throwError } from 'rxjs';
+import { PendingInvite, Task, TaskCategory, TaskUrgency, TASK_URGENCIES } from '../models/task.model';
 import { GamificationService } from './gamification.service';
+import { SupabaseService } from './supabase-service';
 
-@Injectable({
-    providedIn: 'root'
-})
+const CATEGORIES: TaskCategory[] = ['diaria', 'semanal', 'mensal'];
+
+/** "Média" -> "media": tira acentos e maiúsculas para aceitar valores antigos da BD. */
+const plain = (value: unknown): string =>
+    String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+function normalizeParticipants(participants: unknown): any[] {
+    if (!Array.isArray(participants)) return [];
+    return participants
+        .map((p: any) => {
+            if (typeof p === 'string') return { userId: p, userName: '', actionsCompleted: 0 };
+            if (p && typeof p === 'object') {
+                return {
+                    userId: p.userId || p.id || p.user_id,
+                    userName: p.userName || p.name || '',
+                    actionsCompleted: p.actionsCompleted ?? p.actions_completed ?? 0
+                };
+            }
+            return null;
+        })
+        .filter((p: any) => p && p.userId);
+}
+
+function extractParticipantIds(participants: unknown): string[] {
+    if (!Array.isArray(participants)) return [];
+    return participants
+        .map((p: any) => (typeof p === 'string' ? p : p?.userId || p?.id || p?.user_id))
+        .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0);
+}
+
+/** Converte uma linha da BD (snake_case) numa Task (camelCase) com valores válidos. */
+export function mapDbTaskToModel(item: any): Task {
+    const participants = normalizeParticipants(item.participants);
+    const urgency = plain(item.urgency);
+    const category = plain(item.category);
+
+    return {
+        id: item.id,
+        title: item.title,
+        description: item.description || '',
+        category: (CATEGORIES as string[]).includes(category) ? (category as TaskCategory) : 'diaria',
+        urgency: (TASK_URGENCIES as string[]).includes(urgency) ? (urgency as TaskUrgency) : 'media',
+        completed: item.completed ?? false,
+        xpReward: item.xp_reward ?? 20,
+        coinReward: item.coin_reward ?? 10,
+        dueDate: item.due_date || undefined,
+        isCooperative: item.is_cooperative ?? participants.length > 0,
+        participants,
+        acknowledgedBy: Array.isArray(item.acknowledged_by) ? item.acknowledged_by : [],
+        profile_id: item.profile_id || undefined
+    };
+}
+
+/**
+ * Única fonte de verdade das missões.
+ * Quem decide QUANDO carregar é o AppComponent (ao entrar) e a página de missões (ao abrir).
+ */
+@Injectable({ providedIn: 'root' })
 export class TaskService {
-    private supabaseService = inject(SupabaseService);
-    private client = this.supabaseService.supabaseClient;
-    private gamificationService: GamificationService = inject(GamificationService);
+    private client = inject(SupabaseService).supabaseClient;
+    private gamification = inject(GamificationService);
+    private readonly db = this.client as any;
 
-    readonly tasks = signal<Task[]>([]);
+    private readonly _tasks = signal<Task[]>([]);
+    private readonly _loading = signal<boolean>(false);
 
-    private initialTasks = [
-        {
-            title: 'Limpar a Cozinha',
-            description: 'Lavar a louça acumulada e limpar as bancadas.',
-            category: 'Casa',
-            urgency: 'Média',
-            completed: false,
-            xp_reward: 30,
-            coin_reward: 15,
-            due_date: null,
-            is_cooperative: false,
-            participants: [],
-            created_at: new Date().toISOString()
-        },
-        {
-            title: 'Fazer Compras no Supermercado',
-            description: 'Comprar os ingredientes para as refeições da semana.',
-            category: 'Compras',
-            urgency: 'Alta',
-            completed: false,
-            xp_reward: 50,
-            coin_reward: 25,
-            due_date: null,
-            is_cooperative: false,
-            participants: [],
-            created_at: new Date().toISOString()
-        },
-        {
-            title: 'Organizar o Espaço de Trabalho',
-            description: 'Arrumar a secretária e organizar os documentos.',
-            category: 'Trabalho',
-            urgency: 'Baixa',
-            completed: false,
-            xp_reward: 20,
-            coin_reward: 10,
-            due_date: null,
-            is_cooperative: false,
-            participants: [],
-            created_at: new Date().toISOString()
-        },
-        {
-            title: 'Caminhada de 30 minutos',
-            description: 'Manter o corpo ativo ao ar livre.',
-            category: 'Saúde',
-            urgency: 'Média',
-            completed: false,
-            xp_reward: 40,
-            coin_reward: 20,
-            due_date: null,
-            is_cooperative: false,
-            participants: [],
-            created_at: new Date().toISOString()
-        }
-    ];
+    /** Só o serviço escreve; os componentes só leem. */
+    readonly tasks = this._tasks.asReadonly();
+    readonly loading = this._loading.asReadonly();
+    readonly error = signal<string | null>(null);
 
-    constructor() {
-        this.loadTasks();
-    }
+    private readonly userId = computed(() => this.gamification.userProfile().id);
 
-    private normalizeParticipants(participants: any[]): any[] {
-        if (!Array.isArray(participants)) return [];
-        return participants
-            .map((p: any) => {
-                if (typeof p === 'string') {
-                    return {
-                        userId: p,
-                        userName: '',
-                        actionsCompleted: 0
-                    };
-                }
-                if (p && typeof p === 'object') {
-                    return {
-                        userId: p.userId || p.id || p.user_id,
-                        userName: p.userName || p.name || '',
-                        actionsCompleted: p.actionsCompleted ?? p.actions_completed ?? 0
-                    };
-                }
-                return null;
+    // ---- Regras partilhadas: Dashboard, lista de missões e menu usam as mesmas ----
+
+    /** Missões minhas, ou cooperativas que já aceitei. */
+    readonly myTasks = computed(() => {
+        const me = this.userId();
+        if (!me) return [];
+        return this._tasks().filter(
+            (t) =>
+                !t.profile_id ||
+                t.profile_id === me ||
+                (t.isCooperative && (t.acknowledgedBy ?? []).includes(me))
+        );
+    });
+
+    readonly pendingTasks = computed(() => this.myTasks().filter((t) => !t.completed));
+    readonly completedTasks = computed(() => this.myTasks().filter((t) => t.completed));
+
+    /** Convites de missões em conjunto que ainda não aceitei. */
+    readonly pendingInvites = computed<PendingInvite[]>(() => {
+        const me = this.userId();
+        if (!me) return [];
+        const profiles = this.gamification.profiles();
+
+        return this._tasks()
+            .filter((t) => {
+                if (!t.isCooperative || t.profile_id === me) return false;
+                const participants = (t.participants ?? []) as any[];
+                const invited = participants.some((p) => (typeof p === 'string' ? p === me : p?.userId === me));
+                return invited && !(t.acknowledgedBy ?? []).includes(me);
             })
-            .filter((p: any) => p && p.userId);
-    }
+            .map((task) => ({
+                task,
+                inviterName: profiles.find((p) => p.id === task.profile_id)?.name || 'Alguém'
+            }));
+    });
 
-    private extractParticipantIds(participants: any[]): string[] {
-        if (!Array.isArray(participants)) return [];
-        return participants
-            .map((p: any) => {
-                if (typeof p === 'string') return p;
-                if (p && typeof p === 'object') return p.userId || p.id || p.user_id;
-                return null;
-            })
-            .filter((id: any) => typeof id === 'string' && id.length > 0);
-    }
+    /** Cada carregamento recebe um número; respostas atrasadas (de outra conta) são ignoradas. */
+    private loadSeq = 0;
 
-    private mapDbTaskToModel(item: any): Task {
-        const rawParticipants = item.participants || [];
-        const normalizedParticipants = this.normalizeParticipants(rawParticipants);
-
-        return {
-            id: item.id,
-            title: item.title,
-            description: item.description || '',
-            category: item.category || 'Geral',
-            urgency: item.urgency || 'Normal',
-            completed: item.completed ?? false,
-            xpReward: item.xp_reward ?? item.xpReward ?? 20,
-            coinReward: item.coin_reward ?? item.coinReward ?? 10,
-            dueDate: item.due_date || item.dueDate || '',
-            isCooperative: item.is_cooperative ?? item.isCooperative ?? normalizedParticipants.length > 0,
-            participants: normalizedParticipants,
-            acknowledgedBy: item.acknowledged_by || [],
-            profile_id: item.profile_id || null
-        } as Task;
-    }
-
-    getTasks(): Observable<Task[]> {
-        const promise = (this.client as any)
-            .from('tasks')
-            .select('*')
-            .order('id', { ascending: false });
-
-        return from(promise).pipe(
-            map((response: any) => {
-                if (response.error) throw response.error;
-                const rawData = response.data || [];
-                return rawData.map((item: any) => this.mapDbTaskToModel(item));
-            }),
-            tap((data: Task[]) => {
-                if (data.length > 0) {
-                    this.tasks.set(data);
-                } else {
-                    this.seedInitialTasks();
-                }
+    private query<T>(request: PromiseLike<{ data: any; error: any }>): Observable<T> {
+        return from(request).pipe(
+            map((res) => {
+                if (res.error) throw res.error;
+                return res.data as T;
             })
         );
     }
 
-    loadTasks() {
-        this.getTasks().subscribe({
-            error: (err: any) => console.error('Erro ao carregar tarefas:', err)
-        });
+    loadTasks(): void {
+        const requestId = ++this.loadSeq;
+        this._loading.set(true);
+        this.error.set(null);
+
+        from(this.client.auth.getSession())
+            .pipe(
+                switchMap(({ data }) => {
+                    if (!data.session) return of<Task[]>([]); // sem sessão não há missões
+                    return this.query<any[]>(
+                        this.db.from('tasks').select('*').order('id', { ascending: false })
+                    ).pipe(map((rows) => rows.map((row) => mapDbTaskToModel(row))));
+                }),
+                finalize(() => {
+                    if (requestId === this.loadSeq) this._loading.set(false);
+                })
+            )
+            .subscribe({
+                next: (tasks) => {
+                    if (requestId === this.loadSeq) this._tasks.set(tasks);
+                },
+                error: (err) => {
+                    if (requestId !== this.loadSeq) return;
+                    console.error('Erro ao carregar tarefas:', err);
+                    this.error.set('Não foi possível carregar as missões. Tenta novamente.');
+                }
+            });
     }
 
-    private seedInitialTasks() {
-        from(this.client.auth.getUser()).pipe(
-            switchMap(({ data: { user } }) => {
-                if (!user) throw new Error('Utilizador não autenticado');
-
-                const tasksWithUser = this.initialTasks.map(t => ({
-                    ...t,
-                    profile_id: user.id
-                }));
-
-                const promise = (this.client as any)
-                    .from('tasks')
-                    .insert(tasksWithUser)
-                    .select();
-
-                return from(promise);
-            })
-        ).subscribe({
-            next: (res: any) => {
-                if (res.error) {
-                    console.error('Erro ao popular tarefas iniciais:', res.error);
-                    return;
-                }
-                const p2 = (this.client as any).from('tasks').select('*');
-                from(p2).subscribe((res2: any) => {
-                    if (res2.data) {
-                        const mapped = res2.data.map((item: any) => this.mapDbTaskToModel(item));
-                        this.tasks.set(mapped);
-                    }
-                });
-            },
-            error: (err: any) => console.error('Erro ao popular tarefas iniciais:', err)
-        });
+    /** Limpa o estado (logout) e invalida qualquer carregamento ainda a decorrer. */
+    clear(): void {
+        this.loadSeq++;
+        this._tasks.set([]);
+        this._loading.set(false);
+        this.error.set(null);
     }
 
     addTask(taskData: any): Observable<Task> {
-        return from(this.client.auth.getUser()).pipe(
-            switchMap(({ data: { user } }) => {
-                if (!user) {
-                    throw new Error('Utilizador não autenticado');
-                }
+        return from(this.client.auth.getSession()).pipe(
+            switchMap(({ data }) => {
+                const user = data.session?.user;
+                if (!user) return throwError(() => new Error('Utilizador não autenticado'));
 
                 const isCoop = taskData.isCooperative ?? false;
-                const participantIds = isCoop
-                    ? this.extractParticipantIds(taskData.participants)
-                    : [];
-
                 const payload = {
                     title: taskData.title,
                     description: taskData.description || '',
-                    category: taskData.category || 'Geral',
-                    urgency: taskData.urgency || 'Normal',
+                    category: taskData.category || 'diaria',
+                    urgency: taskData.urgency || 'media',
                     completed: false,
                     xp_reward: Number(taskData.xpReward) || 20,
                     coin_reward: Number(taskData.coinReward) || 10,
                     due_date: taskData.dueDate || null,
                     is_cooperative: isCoop,
-                    participants: participantIds,
+                    participants: isCoop ? extractParticipantIds(taskData.participants) : [],
                     acknowledged_by: [],
                     created_at: new Date().toISOString(),
                     profile_id: user.id
                 };
 
-                const promise = (this.client as any)
-                    .from('tasks')
-                    .insert([payload])
-                    .select()
-                    .single();
-
-                return from(promise);
+                return this.query<any>(this.db.from('tasks').insert([payload]).select().single());
             }),
-            map((response: any) => {
-                if (response.error) throw response.error;
-                const newTask = this.mapDbTaskToModel(response.data);
-                this.tasks.update(list => [newTask, ...list]);
-                return newTask;
-            })
+            map((row) => mapDbTaskToModel(row)),
+            tap((task) => this._tasks.update((list) => [task, ...list]))
         );
     }
 
     updateTask(task: Task): Observable<Task> {
-        const taskAny = task as any;
         const isCoop = task.isCooperative ?? false;
-        const participantIds = isCoop ? this.extractParticipantIds(taskAny.participants) : [];
-
         const payload = {
             title: task.title,
             description: task.description,
@@ -250,91 +202,48 @@ export class TaskService {
             completed: task.completed,
             xp_reward: task.xpReward,
             coin_reward: task.coinReward,
-            due_date: taskAny.dueDate || taskAny.due_date || null,
+            due_date: task.dueDate || null,
             is_cooperative: isCoop,
-            participants: participantIds
+            participants: isCoop ? extractParticipantIds(task.participants) : []
         };
 
-        const promise = (this.client as any)
-            .from('tasks')
-            .update(payload)
-            .eq('id', taskAny.id)
-            .select()
-            .single();
-
-        return from(promise).pipe(
-            map((response: any) => {
-                if (response.error) throw response.error;
-                const updated = this.mapDbTaskToModel(response.data);
-                this.tasks.update(list => list.map(t => (t as any).id === (updated as any).id ? updated : t));
-                return updated;
-            })
+        return this.query<any>(
+            this.db.from('tasks').update(payload).eq('id', task.id).select().single()
+        ).pipe(
+            map((row) => mapDbTaskToModel(row)),
+            tap((updated) => this.replaceInList(updated))
         );
     }
 
     acknowledgeInvitation(task: Task, userId: string): Observable<Task> {
-        const taskAny = task as any;
-        const currentAcknowledged = taskAny.acknowledgedBy || taskAny.acknowledged_by || [];
-        const acknowledgedArray = Array.isArray(currentAcknowledged) ? currentAcknowledged : [];
+        const current = Array.isArray(task.acknowledgedBy) ? task.acknowledgedBy : [];
+        if (current.includes(userId)) return of(task);
 
-        if (acknowledgedArray.includes(userId)) {
-            return from(Promise.resolve(this.mapDbTaskToModel(taskAny)));
-        }
-
-        const updatedAcknowledged = [...acknowledgedArray, userId];
-
-        const payload = {
-            acknowledged_by: updatedAcknowledged
-        };
-
-        const promise = (this.client as any)
-            .from('tasks')
-            .update(payload)
-            .eq('id', taskAny.id)
-            .select()
-            .single();
-
-        return from(promise).pipe(
-            map((response: any) => {
-                if (response.error) throw response.error;
-                const updated = this.mapDbTaskToModel(response.data);
-                this.tasks.update((list: Task[]) =>
-                    list.map((t: Task) => ((t as any).id === (updated as any).id ? updated : t))
-                );
-                return updated;
-            })
+        return this.query<any>(
+            this.db
+                .from('tasks')
+                .update({ acknowledged_by: [...current, userId] })
+                .eq('id', task.id)
+                .select()
+                .single()
+        ).pipe(
+            map((row) => mapDbTaskToModel(row)),
+            tap((updated) => this.replaceInList(updated))
         );
     }
 
-    toggleTask(id: number) {
-        const task = this.tasks().find(t => (t as any).id === id);
-        if (!task) return;
-
-        const newCompletedState = !(task as any).completed;
-        const updatedTask = { ...task, completed: newCompletedState } as Task;
-
-        this.updateTask(updatedTask).subscribe({
-            next: () => {
-                if (newCompletedState) {
-                    (this.gamificationService as any).addRewards((task as any).xpReward, (task as any).coinReward);
-                }
-            },
-            error: (err: any) => console.error('Erro ao alternar tarefa:', err)
-        });
+    deleteTask(id: number): Observable<void> {
+        return this.query<any[]>(this.db.from('tasks').delete().eq('id', Number(id)).select()).pipe(
+            tap((deleted) => {
+                // Se as regras (RLS) bloquearem, o Supabase não dá erro: devolve 0 linhas
+                if (deleted.length === 0) throw new Error('Sem permissão para eliminar esta missão.');
+            }),
+            tap(() => this._tasks.update((list) => list.filter((t) => t.id !== Number(id)))),
+            map(() => undefined)
+        );
     }
 
-    deleteTask(id: number): Observable<any> {
-        const promise = (this.client as any)
-            .from('tasks')
-            .delete()
-            .eq('id', Number(id));
-
-        return from(promise).pipe(
-            map((response: any) => {
-                if (response.error) throw response.error;
-                this.tasks.update(list => list.filter(t => (t as any).id !== Number(id)));
-                return response.data;
-            })
-        );
+    private replaceInList(updated: Task): void {
+        this._tasks.update((list) => list.map((t) => (t.id === updated.id ? updated : t)));
     }
 }

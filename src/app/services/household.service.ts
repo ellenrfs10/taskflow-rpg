@@ -1,15 +1,18 @@
 import { Injectable, inject } from '@angular/core';
-import { SupabaseService } from './supabase-service';
-import { from, Observable } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { Observable, from } from 'rxjs';
 import { Household } from '../models/household.model';
+import { SupabaseService } from './supabase-service';
 
+/**
+ * Casas (grupos de jogadores). Cada método devolve um Observable;
+ * por dentro usa funções async simples, mais fáceis de ler.
+ */
 @Injectable({
     providedIn: 'root'
 })
 export class HouseholdService {
-    private supabaseService = inject(SupabaseService);
-    private client = this.supabaseService.supabaseClient;
+    private client = inject(SupabaseService).supabaseClient;
+    private readonly db = this.client as any;
 
     private generateInviteCode(): string {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -21,143 +24,95 @@ export class HouseholdService {
     }
 
     private async isInviteCodeUnique(code: string): Promise<boolean> {
-        const { data, error } = await (this.client as any)
+        const { data, error } = await this.db
             .from('households')
             .select('id')
             .eq('invite_code', code)
             .maybeSingle();
-        if (error) return false;
+        if (error) throw error;
         return !data;
     }
 
+    /** Tenta até 10 vezes; se nenhum for único, falha em vez de usar um código repetido. */
+    private async generateUniqueCode(): Promise<string> {
+        for (let attempt = 0; attempt < 10; attempt++) {
+            const code = this.generateInviteCode();
+            if (await this.isInviteCodeUnique(code)) return code;
+        }
+        throw new Error('Não foi possível gerar um código único. Tenta novamente.');
+    }
+
     createHousehold(name: string): Observable<Household> {
-        return from(this.client.auth.getUser()).pipe(
-            switchMap(async ({ data: { user }, error }) => {
-                if (error) throw error;
-                if (!user) throw new Error('Não autenticado');
+        return from(this.create(name));
+    }
 
-                let code = '';
-                let attempts = 0;
-                while (attempts < 10) {
-                    code = this.generateInviteCode();
-                    if (await this.isInviteCodeUnique(code)) break;
-                    attempts++;
-                }
-                if (!code) throw new Error('Não foi possível gerar código único.');
+    private async create(name: string): Promise<Household> {
+        const { data: { session } } = await this.client.auth.getSession();
+        const user = session?.user;
+        if (!user) throw new Error('Não autenticado');
 
-                const payload = {
-                    name: name?.trim() || 'A nossa casa',
-                    invite_code: code,
-                    created_by: user.id
-                };
+        const code = await this.generateUniqueCode();
 
-                const promise = (this.client as any)
-                    .from('households')
-                    .insert([payload])
-                    .select()
-                    .single();
+        const { data, error } = await this.db
+            .from('households')
+            .insert([{ name: name?.trim() || 'A nossa casa', invite_code: code, created_by: user.id }])
+            .select()
+            .single();
 
-                return from(promise);
-            }),
-            switchMap((obs: any) => obs),
-            map((res: any) => {
-                if (res.error) throw res.error;
-                return res.data as Household;
-            })
-        );
+        if (error) throw error;
+        return data as Household;
     }
 
     joinHousehold(inviteCode: string): Observable<Household> {
+        return from(this.findByCode(inviteCode));
+    }
+
+    private async findByCode(inviteCode: string): Promise<Household> {
         const code = inviteCode.trim().toUpperCase();
+        if (code.length < 6) throw new Error('O código de convite deve ter 6 caracteres.');
 
-        if (code.length < 6) {
-            throw new Error('O código de convite deve ter 6 caracteres.');
-        }
-
-        const promise = (this.client as any)
+        const { data, error } = await this.db
             .from('households')
             .select('*')
             .eq('invite_code', code)
             .maybeSingle();
 
-        return from(promise).pipe(
-            map((res: any) => {
-                if (res.error) throw res.error;
-                if (!res.data) throw new Error('Código de convite inválido ou inexistente.');
-                return res.data as Household;
-            })
-        );
+        if (error) throw error;
+        if (!data) throw new Error('Código de convite inválido ou inexistente.');
+        return data as Household;
     }
 
     getHouseholdById(householdId: string): Observable<Household> {
-        const promise = (this.client as any)
+        return from(this.findById(householdId));
+    }
+
+    private async findById(householdId: string): Promise<Household> {
+        const { data, error } = await this.db
             .from('households')
             .select('*')
             .eq('id', householdId)
             .single();
 
-        return from(promise).pipe(
-            map((res: any) => {
-                if (res.error) throw res.error;
-                return res.data as Household;
-            })
-        );
+        if (error) throw error;
+        return data as Household;
     }
 
-    leaveHousehold(userId: string): Observable<any> {
-        const promise = (this.client as any)
-            .from('profile')
-            .update({ household_id: null })
-            .eq('id', userId);
-
-        return from(promise).pipe(
-            map((res: any) => {
-                if (res.error) throw res.error;
-                return res.data;
-            })
-        );
+    leaveHousehold(userId: string): Observable<void> {
+        return from(this.leave(userId));
     }
 
-    kickMember(householdId: string, memberId: string, creatorId: string): Observable<any> {
-        // Só o criador da casa pode expulsar
-        const promise = (this.client as any)
-            .from('households')
-            .select('created_by')
-            .eq('id', householdId)
-            .single();
-
-        return from(promise).pipe(
-            switchMap((res: any) => {
-                if (res.error) throw res.error;
-                if (!res.data || res.data.created_by !== creatorId) {
-                    throw new Error('Apenas o dono da casa pode expulsar membros.');
-                }
-
-                const updatePromise = (this.client as any)
-                    .from('profile')
-                    .update({ household_id: null })
-                    .eq('id', memberId);
-
-                return from(updatePromise);
-            }),
-            map((res: any) => {
-                if (res.error) throw res.error;
-                return res.data;
-            })
-        );
+    private async leave(userId: string): Promise<void> {
+        const { error } = await this.db.from('profile').update({ household_id: null }).eq('id', userId);
+        if (error) throw error;
     }
 
     getHouseholdMembers(householdId: string): Observable<any[]> {
-        const promise = (this.client as any)
-            .from('profile')
-            .select('*')
-            .eq('household_id', householdId);
+        return from(this.members(householdId));
+    }
 
-        return from(promise).pipe(
-            map((res: any) => {
-                if (res.error) throw res.error;
-                return res.data || [];
-            })
-        );
+    private async members(householdId: string): Promise<any[]> {
+        const { data, error } = await this.db.from('profile').select('*').eq('household_id', householdId);
+        if (error) throw error;
+        return data ?? [];
     }
 }

@@ -1,151 +1,108 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { isPlatformBrowser } from '@angular/common';
+import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
+import { Observable, finalize, from, map, switchMap, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { Reward, RewardRow, toRewardCategory } from '../models/reward.model';
 import { SupabaseService } from './supabase-service';
-import { Reward } from '../models/reward.model';
-import { from } from 'rxjs';
 
-@Injectable({
-    providedIn: 'root'
-})
+function toReward(row: RewardRow): Reward {
+    return {
+        id: String(row.id),
+        title: row.title,
+        description: row.description ?? '',
+        cost: row.cost,
+        icon: row.icon ?? '🎁',
+        category: toRewardCategory(row.category)
+    };
+}
+
+/**
+ * Prémios da loja, lidos e gravados com HttpClient na API REST do Supabase
+ * (https://<projeto>.supabase.co/rest/v1/rewards).
+ */
+@Injectable({ providedIn: 'root' })
 export class ShopService {
-    private supabaseService = inject(SupabaseService);
-    private client = this.supabaseService.supabaseClient;
+    private http = inject(HttpClient);
+    private client = inject(SupabaseService).supabaseClient;
+    private platformId = inject(PLATFORM_ID);
 
-    // Signal reativo para a lista de prémios da loja
-    readonly rewards = signal<Reward[]>([]);
+    private readonly apiUrl = `${environment.supabaseUrl}/rest/v1/rewards`;
 
-    // Lista de prémios pré-prontos para a loja
-    private initialRewards = [
-        {
-            title: 'Noite de Cinema',
-            description: 'Escolher o filme e direito a pipocas.',
-            cost: 50,
-            icon: '🍿',
-            category: 'Lazer',
-            created_at: new Date().toISOString()
-        },
-        {
-            title: 'Massagem Relaxante',
-            description: '15 minutos de pausa com direito a massagem.',
-            cost: 80,
-            icon: '💆‍♂️',
-            category: 'Bem-estar',
-            created_at: new Date().toISOString()
-        },
-        {
-            title: 'Escolher o Jantar',
-            description: 'Decidir o que vai ser pedido ou cozinhado hoje.',
-            cost: 40,
-            icon: '🍕',
-            category: 'Alimentação',
-            created_at: new Date().toISOString()
-        },
-        {
-            title: '1 Hora de Videogames / Série',
-            description: 'Tempo livre extra sem interrupções.',
-            cost: 30,
-            icon: '🎮',
-            category: 'Lazer',
-            created_at: new Date().toISOString()
-        }
-    ];
+    private readonly _rewards = signal<Reward[]>([]);
+    readonly rewards = this._rewards.asReadonly();
 
-    constructor() {
-        this.loadRewards();
+    /** Começa a true: até o primeiro pedido terminar, a loja mostra "A carregar". */
+    readonly loading = signal(true);
+    readonly error = signal<string | null>(null);
+
+    /** Cabeçalhos exigidos pelo Supabase: a chave pública e, se houver sessão, o token do utilizador. */
+    private headers(): Observable<HttpHeaders> {
+        return from(this.client.auth.getSession()).pipe(
+            map(({ data }) => {
+                let headers = new HttpHeaders({
+                    apikey: environment.supabaseKey,
+                    Prefer: 'return=representation'
+                });
+                const token = data.session?.access_token;
+                if (token) headers = headers.set('Authorization', `Bearer ${token}`);
+                return headers;
+            })
+        );
     }
 
-    // Carregar todos os prémios da base de dados
-    loadRewards() {
-        const promise = (this.client as any)
-            .from('rewards')
-            .select('*')
-            .order('id', { ascending: false });
+    loadRewards(): void {
+        // No servidor (SSR/prerender) não há sessão: o pedido só faz sentido no browser
+        if (!isPlatformBrowser(this.platformId)) return;
 
-        from(promise).subscribe({
-            next: (response: any) => {
-                const { data, error } = response;
-                if (error) {
-                    console.error('Erro ao carregar prémios:', error);
-                    return;
-                }
+        this.loading.set(true);
+        this.error.set(null);
 
-                if (data && data.length > 0) {
-                    const mappedRewards = data.map((item: any) => ({
-                        id: item.id.toString(),
-                        title: item.title,
-                        description: item.description || '',
-                        cost: item.cost,
-                        icon: item.icon || '🎁',
-                        category: item.category || 'Geral'
-                    })) as Reward[];
-
-                    this.rewards.set(mappedRewards);
-                } else {
-                    // Se a tabela estiver vazia, insere os prémios pré-prontos
-                    this.seedInitialRewards();
-                }
-            },
-            error: (err) => console.error('Erro de comunicação com o Supabase:', err)
-        });
+        this.headers()
+            .pipe(
+                switchMap((headers) =>
+                    this.http.get<RewardRow[]>(this.apiUrl, {
+                        headers,
+                        params: { select: '*', order: 'id.desc' }
+                    })
+                ),
+                map((rows) => rows.map(toReward)),
+                finalize(() => this.loading.set(false))
+            )
+            .subscribe({
+                next: (rewards) => this._rewards.set(rewards),
+                error: () => this.error.set('Não foi possível carregar os prémios. Tenta novamente.')
+            });
     }
 
-    private seedInitialRewards() {
-        const promise = (this.client as any)
-            .from('rewards')
-            .insert(this.initialRewards)
-            .select();
-
-        from(promise).subscribe({
-            next: () => this.loadRewards(),
-            error: (err) => console.error('Erro ao popular prémios iniciais:', err)
-        });
-    }
-
-    // Adicionar novo prémio à base de dados
-    addReward(reward: Omit<Reward, 'id'>) {
-        const dbPayload = {
-            title: reward.title,
-            description: reward.description || '',
+    addReward(reward: Omit<Reward, 'id'>): Observable<Reward> {
+        const body = {
+            title: reward.title.trim(),
+            description: reward.description?.trim() || '',
             cost: Number(reward.cost),
             icon: reward.icon || '🎁',
-            category: reward.category || 'Geral',
-            created_at: new Date().toISOString() // Obrigatório visto que a coluna não tem default no Supabase
+            category: reward.category,
+            created_at: new Date().toISOString() // a coluna não tem default no Supabase
         };
 
-        const promise = (this.client as any)
-            .from('rewards')
-            .insert([dbPayload])
-            .select();
-
-        from(promise).subscribe({
-            next: (response: any) => {
-                const { error } = response;
-                if (error) {
-                    console.error('Erro ao criar prémio:', error);
-                    return;
-                }
-                this.loadRewards();
-            },
-            error: (err) => console.error('Erro ao adicionar prémio:', err)
-        });
+        return this.headers().pipe(
+            switchMap((headers) => this.http.post<RewardRow[]>(this.apiUrl, body, { headers })),
+            map((rows) => toReward(rows[0])),
+            tap((created) => this._rewards.update((list) => [created, ...list]))
+        );
     }
 
-    // Eliminar um prémio da base de dados
-    deleteReward(id: string) {
-        const promise = (this.client as any)
-            .from('rewards')
-            .delete()
-            .eq('id', Number(id));
-
-        from(promise).subscribe({
-            next: (response: any) => {
-                const { error } = response;
-                if (error) {
-                    console.error('Erro ao eliminar prémio:', error);
-                    return;
-                }
-                this.rewards.update(list => list.filter(r => r.id !== id));
-            },
-            error: (err) => console.error('Erro ao eliminar prémio:', err)
-        });
+    deleteReward(id: string): Observable<void> {
+        return this.headers().pipe(
+            switchMap((headers) =>
+                this.http.delete<RewardRow[]>(this.apiUrl, { headers, params: { id: `eq.${id}` } })
+            ),
+            tap((deleted) => {
+                // Se as regras (RLS) bloquearem, o Supabase não dá erro: devolve 0 linhas
+                if (deleted.length === 0) throw new Error('Sem permissão para eliminar este prémio.');
+            }),
+            tap(() => this._rewards.update((list) => list.filter((r) => r.id !== id))),
+            map(() => undefined)
+        );
     }
 }

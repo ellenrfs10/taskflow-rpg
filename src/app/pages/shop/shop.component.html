@@ -1,48 +1,47 @@
-<main class="shop-page">
-  <!-- Saldo Atual -->
+<section class="shop-page">
   <header class="shop-header card" aria-labelledby="shop-title">
-    <div class="shop-header-info">
+    <hgroup class="shop-header-info">
       <h1 id="shop-title" class="shop-title">🏪 Loja de Recompensas</h1>
       <p class="shop-subtitle">Troca as tuas moedas por prémios merecidos</p>
-    </div>
-    <div class="user-balance">
+    </hgroup>
+    <p class="user-balance">
       <span class="balance-label">O teu saldo:</span>
-      <strong class="coins-badge" aria-label="Tens {{ user().coins }} moedas">
-        <span aria-hidden="true">🪙</span> {{ user().coins }} Moedas
-      </strong>
-    </div>
+      <strong class="coins-badge"><span aria-hidden="true">🪙</span> {{ user().coins }} Moedas</strong>
+    </p>
   </header>
 
-  <!-- Filtros e Ordenação -->
-  <section class="controls-bar card" aria-labelledby="filters-title">
-    <h2 id="filters-title" class="sr-only">Filtros e ordenação da loja</h2>
+  @if (feedback(); as msg) {
+    <p
+      [class.error-banner]="msg.kind === 'error'"
+      [attr.role]="msg.kind === 'error' ? 'alert' : 'status'"
+    >
+      {{ msg.text }}
+    </p>
+  }
 
+  <section class="controls-bar card" aria-label="Filtros e ordenação da loja">
     <div class="filter-group">
-      <span class="filter-label">📁 Categoria:</span>
-      <div class="btn-group" role="group" aria-label="Filtrar prémios por categoria">
-        @for (cat of categories; track cat) {
-          <button
-            type="button"
-            (click)="filterByCategory(cat)"
-            [class.active]="selectedCategory() === cat"
-            [attr.aria-pressed]="selectedCategory() === cat"
-            class="btn-filter"
-          >
-            {{ cat }}
-          </button>
+      <p class="filter-label" id="category-label">📁 Categoria:</p>
+      <ul class="btn-group" aria-labelledby="category-label">
+        @for (cat of filterCategories; track cat) {
+          <li>
+            <button
+              type="button"
+              class="btn-filter"
+              [class.active]="selectedCategory() === cat"
+              [attr.aria-pressed]="selectedCategory() === cat"
+              (click)="filterByCategory(cat)"
+            >
+              {{ cat }}
+            </button>
+          </li>
         }
-      </div>
+      </ul>
     </div>
 
     <div class="filter-group">
-      <label class="filter-label" for="sort-price">📊 Ordenar por Preço:</label>
-      <select
-        id="sort-price"
-        class="select-sort"
-        [value]="sortByPrice()"
-        (change)="setSortOrder($any($event.target).value)"
-        aria-label="Ordenar prémios por preço"
-      >
+      <label class="filter-label" for="sort-price">📊 Ordenar por preço:</label>
+      <select id="sort-price" #sort class="select-sort" [value]="sortByPrice()" (change)="setSortOrder(sort.value)">
         <option value="none">Padrão</option>
         <option value="asc">Mais barato → Mais caro</option>
         <option value="desc">Mais caro → Mais barato</option>
@@ -50,65 +49,65 @@
     </div>
   </section>
 
-  <!-- Grelha de Prémios -->
   <section class="rewards-section" aria-labelledby="rewards-heading">
     <header class="rewards-header">
       <h2 id="rewards-heading" class="section-title">Prémios Disponíveis</h2>
     </header>
 
-    @if (filteredRewards().length > 0) {
-      <div class="rewards-grid" role="list">
-        @for (reward of filteredRewards(); track reward.id) {
-          <article class="reward-card card" role="listitem" aria-labelledby="reward-{{ reward.id }}">
-            <button
-              class="btn-delete"
-              type="button"
-              (click)="removeReward(reward.id)"
-              title="Eliminar prémio"
-              aria-label="Eliminar prémio {{ reward.title }}"
-            >
-              🗑️
-            </button>
-
-            <div class="reward-icon" aria-hidden="true">{{ reward.icon || '🎁' }}</div>
-            <span class="category-tag">{{ reward.category }}</span>
-
-            <h3 id="reward-{{ reward.id }}" class="reward-title">{{ reward.title }}</h3>
-            <p class="reward-description">{{ reward.description }}</p>
-
-            <footer class="reward-footer">
-              <span class="cost-tag">
-                <span aria-hidden="true">🪙</span> {{ reward.cost }}
-              </span>
-              <button
-                class="btn btn-buy"
-                type="button"
-                [disabled]="user().coins < reward.cost || isBuying()"
-                [attr.aria-busy]="isBuying()"
-                (click)="buyReward(reward)"
-              >
-                {{
-                  user().coins < reward.cost
-                    ? 'Moedas insuficientes'
-                    : isBuying()
-                      ? 'A processar...'
-                      : 'Resgatar'
-                }}
-              </button>
-            </footer>
-          </article>
-        }
-      </div>
-    } @else {
-      <p class="no-items">
-        Nenhum prémio encontrado nesta categoria.
+    @if (loading()) {
+      <p class="no-items" role="status">A carregar prémios...</p>
+    } @else if (error()) {
+      <p class="error-banner" role="alert">
+        {{ error() }}
+        <button type="button" class="btn" (click)="reload()">Tentar novamente</button>
       </p>
+    } @else if (filteredRewards().length > 0) {
+      <ul class="rewards-grid">
+        @for (reward of filteredRewards(); track reward.id) {
+          <li>
+            <article class="reward-card card" [attr.aria-labelledby]="'reward-' + reward.id">
+              <button
+                class="btn-delete"
+                type="button"
+                (click)="removeReward(reward.id)"
+                [attr.aria-label]="'Eliminar prémio ' + reward.title"
+              >
+                🗑️
+              </button>
+
+              <p class="reward-icon" aria-hidden="true">{{ reward.icon || '🎁' }}</p>
+              <span class="category-tag">{{ reward.category }}</span>
+
+              <h3 [id]="'reward-' + reward.id" class="reward-title">{{ reward.title }}</h3>
+              <p class="reward-description">{{ reward.description }}</p>
+
+              <footer class="reward-footer">
+                <span class="cost-tag"><span aria-hidden="true">🪙</span> {{ reward.cost }}</span>
+                <button
+                  class="btn btn-buy"
+                  type="button"
+                  [disabled]="user().coins < reward.cost || isBuying()"
+                  [attr.aria-busy]="isBuying()"
+                  (click)="buyReward(reward)"
+                >
+                  {{
+                    user().coins < reward.cost
+                      ? 'Moedas insuficientes'
+                      : isBuying()
+                        ? 'A processar...'
+                        : 'Resgatar'
+                  }}
+                </button>
+              </footer>
+            </article>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="no-items">Nenhum prémio encontrado nesta categoria.</p>
     }
   </section>
 
-  <hr class="divider" aria-hidden="true" />
-
-  <!-- Formulário para Criar Novo Prémio -->
   <section class="add-reward-section card" aria-labelledby="add-reward-title">
     <header class="add-reward-header">
       <h2 id="add-reward-title" class="add-reward-title">
@@ -119,6 +118,9 @@
     </header>
 
     <form [formGroup]="rewardForm" (ngSubmit)="addReward()" class="reward-form" novalidate>
+      @let title = rewardForm.controls.title;
+      @let cost = rewardForm.controls.cost;
+
       <div class="form-grid">
         <div class="form-group form-group--title">
           <label class="form-label" for="title">Título do Prémio *</label>
@@ -129,11 +131,22 @@
             formControlName="title"
             placeholder="Ex: Ver um filme"
             autocomplete="off"
+            [attr.aria-invalid]="title.invalid && title.touched"
+            aria-describedby="title-error"
           />
+          @if (title.touched && title.invalid) {
+            <small id="title-error" class="form-error-text" role="alert">
+              @if (title.hasError('required')) {
+                O título é obrigatório.
+              } @else if (title.hasError('minlength')) {
+                O título precisa de pelo menos 3 caracteres.
+              }
+            </small>
+          }
         </div>
 
         <div class="form-group form-group--cost">
-          <label class="form-label" for="cost">Custo (Moedas) *</label>
+          <label class="form-label" for="cost">Custo (moedas) *</label>
           <input
             id="cost"
             type="number"
@@ -142,16 +155,26 @@
             min="1"
             inputmode="numeric"
             placeholder="Ex: 50"
+            [attr.aria-invalid]="cost.invalid && cost.touched"
+            aria-describedby="cost-error"
           />
+          @if (cost.touched && cost.invalid) {
+            <small id="cost-error" class="form-error-text" role="alert">
+              @if (cost.hasError('required')) {
+                Indica o custo do prémio.
+              } @else if (cost.hasError('min')) {
+                O custo mínimo é 1 moeda.
+              }
+            </small>
+          }
         </div>
 
         <div class="form-group form-group--category">
           <label class="form-label" for="category">Categoria *</label>
           <select id="category" class="form-control" formControlName="category">
-            <option value="Geral">Geral</option>
-            <option value="Lazer">Lazer</option>
-            <option value="Privilégios">Privilégios</option>
-            <option value="Guloseimas">Guloseimas</option>
+            @for (cat of categoryOptions; track cat) {
+              <option [value]="cat">{{ cat }}</option>
+            }
           </select>
         </div>
 
@@ -182,14 +205,10 @@
       </div>
 
       <div class="form-actions">
-        <button
-          type="submit"
-          class="btn btn-primary btn-create"
-          [disabled]="rewardForm.invalid"
-        >
+        <button type="submit" class="btn btn-primary btn-create" [disabled]="rewardForm.invalid">
           Criar Prémio
         </button>
       </div>
     </form>
   </section>
-</main>
+</section>
